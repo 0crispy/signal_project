@@ -7,19 +7,37 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.ConcurrentHashMap;
 
-// Changed to CamelCase (class name).
+/**
+ * Writes data to files in a base directory.
+ * Creates separate files for each data label and appends data to existing files.
+ * Give it a directory and call output() to write data!
+ */
 public class FileOutputStrategy implements OutputStrategy {
 
-    // Changed to camelCase (variable name)
-    private String baseDirectory;
+    /** Where we'll store our output files */
+    private final String baseDirectory;
 
-    // Changed to camelCase (variable name)
+    /** Keeps track of which label goes to which file - thread-safe! */
     public final ConcurrentHashMap<String, String> fileMap = new ConcurrentHashMap<>();
 
+    /**
+     * Sets up where we'll save our files.
+     * 
+     * @param baseDirectory folder for output files
+     */
     public FileOutputStrategy(String baseDirectory) {
         this.baseDirectory = baseDirectory;
     }
 
+    /**
+     * Writes patient info to files by data type.
+     * Makes the directory if needed and adds data to the right file.
+     *
+     * @param patientId which patient is this for
+     * @param timestamp when it happened
+     * @param label what kind of data (used for filename)
+     * @param data the actual info to save
+     */
     @Override
     public void output(int patientId, long timestamp, String label, String data) {
         try {
