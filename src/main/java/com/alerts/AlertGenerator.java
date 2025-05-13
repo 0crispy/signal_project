@@ -10,7 +10,8 @@ import com.data_management.Patient;
  * it against specific health criteria.
  */
 public class AlertGenerator {
-    private DataStorage dataStorage;
+
+    private final DataStorage dataStorage;  // added private field to store DataStorage
 
     /**
      * Constructs an {@code AlertGenerator} with a specified {@code DataStorage}.
@@ -21,21 +22,21 @@ public class AlertGenerator {
      *                    data
      */
     public AlertGenerator(DataStorage dataStorage) {
-        this.dataStorage = dataStorage;
+        this.dataStorage = dataStorage;  // Added assignment to store the parameter
     }
 
     /**
      * Evaluates the specified patient's data to determine if any alert conditions
      * are met. If a condition is met, an alert is triggered via the
-     * {@link #triggerAlert}
-     * method. This method should define the specific conditions under which an
-     * alert
-     * will be triggered.
+     * {@link #triggerAlert} method. This method should define the specific conditions
+     * under which an alert will be triggered.
      *
      * @param patient the patient data to evaluate for alert conditions
      */
     public void evaluateData(Patient patient) {
         // Implementation goes here
+        // adding a TODO comment as placeholder
+        // TODO: implement patient data evaluation logic
     }
 
     /**
@@ -48,5 +49,8 @@ public class AlertGenerator {
      */
     private void triggerAlert(Alert alert) {
         // Implementation might involve logging the alert or notifying staff
+        // Note: Empty method body violates style guide - should either implement or document why empty
+        // adding a TODO comment as placeholder
+        // TODO: implement alert triggering logic
     }
 }
