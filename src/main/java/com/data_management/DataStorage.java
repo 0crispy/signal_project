@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import com.alerts.AlertGenerator;
+import com.alerts.AlertManager;
+import com.alerts.thresholds.PatientThresholdProfile;
 
 /**
  * Manages storage and retrieval of patient data within a healthcare monitoring
@@ -63,7 +65,18 @@ public class DataStorage {
         if (patient != null) {
             return patient.getRecords(startTime, endTime);
         }
-        return new ArrayList<>(); // return an empty list if no patient is found
+        else{
+            return new ArrayList<>(); // return an empty list if no patient is found
+        }
+    }
+    public PatientThresholdProfile getPatientThresholdProfile(int patientId){
+        Patient patient = patientMap.get(patientId);
+        if (patient != null) {
+            return patient.getThresholdProfile();
+        }
+        else{
+            return null;
+        }
     }
 
     /**
@@ -100,8 +113,9 @@ public class DataStorage {
                     ", Timestamp: " + record.getTimestamp());
         }
 
+        AlertManager alertManager = new AlertManager();
         // Initialize the AlertGenerator with the storage
-        AlertGenerator alertGenerator = new AlertGenerator(storage);
+        AlertGenerator alertGenerator = new AlertGenerator(storage, alertManager);
 
         // Evaluate all patients' data to check for conditions that may trigger alerts
         for (Patient patient : storage.getAllPatients()) {

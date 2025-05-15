@@ -2,25 +2,25 @@ package com.alerts;
 
 // Represents an alert
 public class Alert {
-    private String patientId;
-    private String condition;
+    private int patientId;
+    private PatientRecord vitals;
     private long timestamp;
 
-    public Alert(String patientId, String condition, long timestamp) {
+    public Alert(int patientId, PatientRecord vitals, long timestamp) {
         this.patientId = patientId;
-        this.condition = condition;
+        this.vitals = vitals;
         this.timestamp = timestamp;
     }
 
-    public String getPatientId() {
-        return patientId;
+    public int getPatientId() {
+        return this.patientId;
     }
 
-    public String getCondition() {
-        return condition;
+    public PatientRecord getVitals() {
+        return this.vitals;
     }
 
     public long getTimestamp() {
-        return timestamp;
+        return this.timestamp;
     }
 }

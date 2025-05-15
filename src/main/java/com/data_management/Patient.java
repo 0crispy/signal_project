@@ -3,6 +3,8 @@ package com.data_management;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.alerts.thresholds.PatientThresholdProfile;
+
 /**
  * Represents a patient and manages their medical records.
  * This class stores patient-specific data, allowing for the addition and
@@ -12,6 +14,7 @@ import java.util.List;
 public class Patient {
     private int patientId;
     private List<PatientRecord> patientRecords;
+    private PatientThresholdProfile profile = new PatientThresholdProfile();
 
     /**
      * Constructs a new Patient with a specified ID.
@@ -24,6 +27,12 @@ public class Patient {
         this.patientRecords = new ArrayList<>();
     }
 
+    public void updateThresholdProfile(PatientThresholdProfile profile){
+        this.profile = profile;
+    }
+    public PatientThresholdProfile getThresholdProfile(){
+        return this.profile;
+    }
     /**
      * Adds a new record to this patient's list of medical records.
      * The record is created with the specified measurement value, record type, and
