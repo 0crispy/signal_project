@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.io.IOException;
+
 import com.alerts.AlertGenerator;
 import com.alerts.AlertManager;
 import com.alerts.thresholds.PatientThresholdProfile;
@@ -69,6 +71,13 @@ public class DataStorage {
             return new ArrayList<>(); // return an empty list if no patient is found
         }
     }
+    
+    /**
+     * Gets the threshold profile for a specific patient
+     * 
+     * @param patientId the ID of the patient
+     * @return the patient's threshold profile, or null if the patient doesn't exist
+     */
     public PatientThresholdProfile getPatientThresholdProfile(int patientId){
         Patient patient = patientMap.get(patientId);
         if (patient != null) {
@@ -96,24 +105,54 @@ public class DataStorage {
      * @param args command line arguments
      */
     public static void main(String[] args) {
-        // DataReader is not defined in this scope, should be initialized appropriately.
-        // DataReader reader = new SomeDataReaderImplementation("path/to/data");
         DataStorage storage = new DataStorage();
+        AlertManager alertManager = new AlertManager();
+        
+        // Example alert listener implementation to handle alerts
+        alertManager.addListener(alert -> {
+            System.out.println("ALERT RECEIVED: " + alert.getDescription());
+            System.out.println("Patient ID: " + alert.getPatientId());
+            System.out.println("Alert Type: " + alert.getAlertType());
+            System.out.println("Timestamp: " + alert.getTimestamp());
+            System.out.println("------------------------------------");
+        });
 
-        // Assuming the reader has been properly initialized and can read data into the
-        // storage
-        // reader.readData(storage);
-
-        // Example of using DataStorage to retrieve and print records for a patient
-        List<PatientRecord> records = storage.getRecords(1, 1700000000000L, 1800000000000L);
-        for (PatientRecord record : records) {
-            System.out.println("Record for Patient ID: " + record.getPatientId() +
-                    ", Type: " + record.getRecordType() +
-                    ", Data: " + record.getMeasurementValue() +
-                    ", Timestamp: " + record.getTimestamp());
+        // Process command line arguments to find data directory
+        String dataDir = null;
+        for (String arg : args) {
+            if (arg.startsWith("--input=")) {
+                dataDir = arg.substring("--input=".length());
+            }
         }
 
-        AlertManager alertManager = new AlertManager();
+        if (dataDir != null) {
+            try {
+                // Initialize FileDataReader with the specified directory
+                FileDataReader reader = new FileDataReader(dataDir);
+                reader.readData(storage);
+                System.out.println("Data loaded successfully from: " + dataDir);
+            } catch (IOException e) {
+                System.err.println("Error reading data: " + e.getMessage());
+                System.exit(1);
+            }
+        } else {
+            System.out.println("No input directory specified. Use --input=<directory> to load data.");
+            // Continue with empty storage for demonstration
+        }
+
+        // Example of using DataStorage to retrieve and print records for a patient
+        List<PatientRecord> records = storage.getRecords(1, 0L, Long.MAX_VALUE);
+        if (!records.isEmpty()) {
+            System.out.println("Found " + records.size() + " records for patient ID 1");
+            for (PatientRecord record : records) {
+                System.out.println("Record: " + record.getRecordType() +
+                        ", Value: " + record.getMeasurementValue() +
+                        ", Timestamp: " + record.getTimestamp());
+            }
+        } else {
+            System.out.println("No records found for patient ID 1");
+        }
+
         // Initialize the AlertGenerator with the storage
         AlertGenerator alertGenerator = new AlertGenerator(storage, alertManager);
 
@@ -121,5 +160,7 @@ public class DataStorage {
         for (Patient patient : storage.getAllPatients()) {
             alertGenerator.evaluateData(patient);
         }
+        
+        System.out.println("Alert evaluation complete.");
     }
 }

@@ -6,9 +6,9 @@ import com.cardio_generator.outputs.OutputStrategy;
 
 public class BloodLevelsDataGenerator implements PatientDataGenerator {
     private static final Random random = new Random();
-    private final double[] baselineCholesterol;
-    private final double[] baselineWhiteCells;
-    private final double[] baselineRedCells;
+    final double[] baselineCholesterol;
+    final double[] baselineWhiteCells;
+    final double[] baselineRedCells;
 
     public BloodLevelsDataGenerator(int patientCount) {
         // Initialize arrays to store baseline values for each patient

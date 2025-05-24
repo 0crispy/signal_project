@@ -16,7 +16,7 @@ public class BloodSaturationDataGenerator implements PatientDataGenerator {
     private static final Random random = new Random();
     
     /** Stores the last generated saturation value for each patient */
-    private int[] lastSaturationValues;
+    int[] lastSaturationValues;
 
     /**
      * Constructs a blood saturation data generator for a specified number of patients.

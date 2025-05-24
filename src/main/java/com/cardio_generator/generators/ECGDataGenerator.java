@@ -6,7 +6,7 @@ import com.cardio_generator.outputs.OutputStrategy;
 
 public class ECGDataGenerator implements PatientDataGenerator {
     private static final Random random = new Random();
-    private double[] lastEcgValues;
+    double[] lastEcgValues;
     private static final double PI = Math.PI;
 
     public ECGDataGenerator(int patientCount) {
@@ -30,7 +30,7 @@ public class ECGDataGenerator implements PatientDataGenerator {
         }
     }
 
-    private double simulateEcgWaveform(int patientId, double lastEcgValue) {
+    double simulateEcgWaveform(int patientId, double lastEcgValue) {
         // Simplified ECG waveform generation based on sinusoids
         double hr = 60.0 + random.nextDouble() * 20.0; // Simulate heart rate variability between 60 and 80 bpm
         double t = System.currentTimeMillis() / 1000.0; // Use system time to simulate continuous time

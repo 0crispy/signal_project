@@ -15,10 +15,10 @@ import com.cardio_generator.outputs.OutputStrategy;
 public class AlertGenerator implements PatientDataGenerator {
 
     /** Random number generator for determining alert state changes */
-    public static final Random randomGenerator = new Random();
+    public static Random randomGenerator = new Random();
     
     /** Tracks the current alert state for each patient (true = triggered, false = resolved) */
-    private boolean[] AlertStates; 
+    boolean[] AlertStates;
 
     /**
      * Constructs an alert generator for a specified number of patients.

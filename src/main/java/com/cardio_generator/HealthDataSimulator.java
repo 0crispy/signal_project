@@ -1,5 +1,7 @@
 package com.cardio_generator;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -59,7 +61,7 @@ public class HealthDataSimulator {
      * @param args the command line arguments
      * @throws IOException if there's an error during directory creation
      */
-    private static void parseArguments(String[] args) throws IOException {
+    static void parseArguments(String[] args) throws IOException {
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
                 case "-h":
@@ -179,5 +181,17 @@ public class HealthDataSimulator {
      */
     private static void scheduleTask(Runnable task, long period, TimeUnit timeUnit) {
         scheduler.scheduleAtFixedRate(task, random.nextInt(5), period, timeUnit);
+    }
+    public static String getHelpText() {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        PrintStream old = System.out;
+        System.setOut(ps);
+
+        printHelp();
+
+        System.out.flush();
+        System.setOut(old);
+        return baos.toString();
     }
 }
