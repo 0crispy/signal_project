@@ -12,7 +12,7 @@ import com.data_management.Patient;
 import com.data_management.PatientRecord;
 
 /**
- * Enhanced AlertGenerator that fully implements all required alert types
+ * Generates alerts by checking patient data.
  */
 public class AlertGenerator {
     private DataStorage dataStorage;
@@ -46,6 +46,10 @@ public class AlertGenerator {
         this.ecgHistory = new HashMap<>();
     }
 
+    /**
+     * Analyzes patient data and triggers alerts as needed.
+     * @param patient the patient to evaluate
+     */
     public void evaluateData(Patient patient) {
         int patientId = patient.getPatientId();
         List<PatientRecord> records = patient.getAllRecords();
@@ -72,7 +76,7 @@ public class AlertGenerator {
     }
 
     /**
-     * Updates patient history for different vital types
+     * Updates the history for each vital record.
      */
     private void updateHistory(int patientId, PatientRecord record) {
         String recordType = record.getRecordType();
@@ -95,7 +99,7 @@ public class AlertGenerator {
     }
 
     /**
-     * 1. Blood Pressure Critical Threshold Alerts
+     * Checks for immediate BP and saturation violations.
      */
     private void checkImmediateThresholds(int patientId, PatientRecord record) {
         String recordType = record.getRecordType();
@@ -128,7 +132,6 @@ public class AlertGenerator {
 
             case "BloodSaturation":
             case "Saturation":
-                // 2. Blood Saturation Low Alert
                 if (value < SATURATION_LOW_THRESHOLD) {
                     triggerAlert(new Alert(patientId, record, System.currentTimeMillis(),
                             "LowBloodSaturation",
@@ -139,7 +142,7 @@ public class AlertGenerator {
     }
 
     /**
-     * 1. Blood Pressure Trend Alerts
+     * Checks for BP trends (increasing or decreasing).
      */
     private void checkBloodPressureTrends(int patientId) {
         checkPressureTrend(patientId, systolicHistory.get(patientId), "Systolic");
@@ -157,7 +160,6 @@ public class AlertGenerator {
             double val2 = history.get(i-1).getMeasurementValue();
             double val3 = history.get(i).getMeasurementValue();
 
-            // Check for increasing trend (each reading increases by >10 mmHg)
             if ((val2 - val1) > BP_TREND_THRESHOLD && (val3 - val2) > BP_TREND_THRESHOLD) {
                 triggerAlert(new Alert(patientId, history.get(i), System.currentTimeMillis(),
                         "BloodPressureIncreasingTrend",
@@ -165,7 +167,6 @@ public class AlertGenerator {
                                 val1 + " → " + val2 + " → " + val3 + " mmHg"));
             }
 
-            // Check for decreasing trend (each reading decreases by >10 mmHg)
             if ((val1 - val2) > BP_TREND_THRESHOLD && (val2 - val3) > BP_TREND_THRESHOLD) {
                 triggerAlert(new Alert(patientId, history.get(i), System.currentTimeMillis(),
                         "BloodPressureDecreasingTrend",
@@ -176,7 +177,7 @@ public class AlertGenerator {
     }
 
     /**
-     * 2. Blood Saturation Rapid Drop Alert
+     * Checks if blood saturation drops quickly.
      */
     private void checkSaturationRapidDrop(int patientId) {
         List<PatientRecord> history = saturationHistory.get(patientId);
@@ -187,13 +188,12 @@ public class AlertGenerator {
         for (int i = 1; i < history.size(); i++) {
             PatientRecord current = history.get(i);
 
-            // Check all previous readings within 10-minute window
             for (int j = i - 1; j >= 0; j--) {
                 PatientRecord previous = history.get(j);
                 long timeDiff = current.getTimestamp() - previous.getTimestamp();
 
                 if (timeDiff > TEN_MINUTES_MS) {
-                    break; // Outside 10-minute window
+                    break;
                 }
 
                 double drop = previous.getMeasurementValue() - current.getMeasurementValue();
@@ -203,14 +203,14 @@ public class AlertGenerator {
                             "Rapid drop in blood oxygen saturation: " +
                                     previous.getMeasurementValue() + "% to " + current.getMeasurementValue() +
                                     "% (drop of " + drop + "%) within " + (timeDiff / 60000) + " minutes"));
-                    break; // Only alert once per reading
+                    break;
                 }
             }
         }
     }
 
     /**
-     * 3. Hypotensive Hypoxemia Alert
+     * Triggers an alert when both low BP and low saturation happen close in time.
      */
     private void checkHypotensiveHypoxemia(int patientId) {
         List<PatientRecord> systolicRecords = systolicHistory.get(patientId);
@@ -220,7 +220,6 @@ public class AlertGenerator {
             return;
         }
 
-        // Check for concurrent low systolic pressure and low saturation
         for (PatientRecord systolicRecord : systolicRecords) {
             if (systolicRecord.getMeasurementValue() < SYSTOLIC_LOW_THRESHOLD) {
 
@@ -234,7 +233,7 @@ public class AlertGenerator {
                                     "Critical condition: Low systolic pressure (" +
                                             systolicRecord.getMeasurementValue() + " mmHg) and low oxygen saturation (" +
                                             satRecord.getMeasurementValue() + "%) detected within 5 minutes"));
-                            return; // Only alert once per evaluation
+                            return;
                         }
                     }
                 }
@@ -243,7 +242,7 @@ public class AlertGenerator {
     }
 
     /**
-     * 4. ECG Anomaly Detection using sliding window
+     * Detects ECG anomalies using a sliding window.
      */
     private void checkECGAnomalies(int patientId) {
         List<PatientRecord> history = ecgHistory.get(patientId);
@@ -252,7 +251,6 @@ public class AlertGenerator {
         }
 
         for (int i = ECG_WINDOW_SIZE; i < history.size(); i++) {
-            // Calculate average of previous window
             double sum = 0;
             for (int j = i - ECG_WINDOW_SIZE; j < i; j++) {
                 sum += Math.abs(history.get(j).getMeasurementValue());
@@ -262,7 +260,6 @@ public class AlertGenerator {
             PatientRecord current = history.get(i);
             double currentValue = Math.abs(current.getMeasurementValue());
 
-            // Check if current reading is significantly above average
             if (currentValue > average * ECG_ANOMALY_MULTIPLIER && average > 0) {
                 triggerAlert(new Alert(patientId, current, System.currentTimeMillis(),
                         "ECGAnomaly",
@@ -274,7 +271,7 @@ public class AlertGenerator {
     }
 
     /**
-     * 5. Manual/Triggered Alert
+     * Triggers a manual alert (button press).
      */
     private void checkManualAlert(int patientId, PatientRecord record) {
         if ("Alert".equals(record.getRecordType()) && record.getMeasurementValue() == 1.0) {
@@ -285,7 +282,7 @@ public class AlertGenerator {
     }
 
     /**
-     * Triggers an alert through the alert manager
+     * Sends the alert through the alert manager.
      */
     private void triggerAlert(Alert alert) {
         alertManager.handleAlert(alert);

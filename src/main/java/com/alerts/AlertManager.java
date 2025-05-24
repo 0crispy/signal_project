@@ -4,7 +4,7 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Thread-safe manager for handling and tracking patient alerts.
+ * Manages alerts in a thread-safe way.
  */
 public class AlertManager {
     private final Set<Alert> alerts;
@@ -16,13 +16,20 @@ public class AlertManager {
         this.listeners = new CopyOnWriteArrayList<>();
     }
 
+    /**
+     * Listener interface for alert notifications.
+     */
     public interface AlertListener {
+        /**
+         * Called when a new alert comes in.
+         * @param alert the new alert
+         */
         void onAlert(Alert alert);
     }
 
     /**
-     * Handles a new alert, ignoring duplicates
-     * @param alert the alert to handle
+     * Handles a new alert and notifies listeners if it's unique.
+     * @param alert the new alert (cannot be null)
      * @throws IllegalArgumentException if alert is null
      */
     public void handleAlert(Alert alert) {
@@ -38,15 +45,15 @@ public class AlertManager {
     }
 
     /**
-     * Adds a listener to be notified of new alerts
-     * @param listener the listener to add
+     * Adds a listener for alerts.
+     * @param listener a listener to add
      */
     public void addListener(AlertListener listener) {
         listeners.add(listener);
     }
 
     /**
-     * Removes a listener
+     * Removes an alert listener.
      * @param listener the listener to remove
      */
     public void removeListener(AlertListener listener) {
@@ -54,8 +61,8 @@ public class AlertManager {
     }
 
     /**
-     * Gets all stored alerts
-     * @return a copy of all alerts
+     * Returns all alerts.
+     * @return a list of alerts
      */
     public List<Alert> getAllAlerts() {
         synchronized (lock) {
@@ -64,9 +71,9 @@ public class AlertManager {
     }
 
     /**
-     * Gets alerts for a specific patient
-     * @param patientId the patient ID
-     * @return list of alerts for the patient
+     * Returns alerts for a specific patient.
+     * @param patientId the patient’s ID
+     * @return a list of alerts for that patient
      */
     public List<Alert> getAlertsForPatient(int patientId) {
         synchronized (lock) {
@@ -81,7 +88,7 @@ public class AlertManager {
     }
 
     /**
-     * Clears all stored alerts
+     * Clears all alerts.
      */
     public void clearAlerts() {
         synchronized (lock) {
@@ -90,8 +97,8 @@ public class AlertManager {
     }
 
     /**
-     * Notifies all listeners about a new alert
-     * @param alert the alert to notify about
+     * Notifies all listeners about a new alert.
+     * @param alert the alert to send
      */
     private void notifyListeners(Alert alert) {
         for (AlertListener listener : listeners) {

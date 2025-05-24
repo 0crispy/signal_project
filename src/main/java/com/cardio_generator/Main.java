@@ -3,9 +3,14 @@ package com.cardio_generator;
 import java.io.IOException;
 
 /**
- * Main router class to handle execution of different application components
+ * Routes commands to the right part of the app.
  */
 public class Main {
+    /**
+     * Main router that calls the appropriate module.
+     * @param args command line args
+     * @throws IOException if something goes wrong
+     */
     public static void main(String[] args) throws IOException {
         if (args.length > 0) {
             String command = args[0].toLowerCase();
@@ -45,6 +50,9 @@ public class Main {
         }
     }
 
+    /**
+     * Prints usage instructions.
+     */
     private static void printUsage() {
         System.out.println("Usage: java -jar cardio_generator.jar [COMMAND] [OPTIONS]");
         System.out.println();

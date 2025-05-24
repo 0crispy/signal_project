@@ -4,18 +4,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Represents a patient's threshold profile containing all vital sign thresholds.
+ * Holds a patient’s vital thresholds. Comes with default settings.
  */
 public class PatientThresholdProfile {
     private List<VitalsThreshold> thresholds;
 
+    /**
+     * Builds a profile with default thresholds.
+     */
     public PatientThresholdProfile() {
         this.thresholds = new ArrayList<>();
         initializeDefaultThresholds();
     }
 
     /**
-     * Initialize default thresholds for common vital signs
+     * Sets up default thresholds for common vitals.
      */
     private void initializeDefaultThresholds() {
         // Blood Pressure thresholds
@@ -35,18 +38,30 @@ public class PatientThresholdProfile {
                 "ECG reading abnormal"));
     }
 
+    /**
+     * Returns a copy of the thresholds.
+     */
     public List<VitalsThreshold> getThresholds() {
         return new ArrayList<>(thresholds);
     }
 
+    /**
+     * Adds a new vital threshold.
+     */
     public void addThreshold(VitalsThreshold threshold) {
         thresholds.add(threshold);
     }
 
+    /**
+     * Removes threshold by type.
+     */
     public void removeThreshold(String recordType) {
         thresholds.removeIf(threshold -> threshold.getRecordType().equals(recordType));
     }
 
+    /**
+     * Finds the threshold for the given vital type.
+     */
     public VitalsThreshold getThresholdForType(String recordType) {
         return thresholds.stream()
                 .filter(threshold -> threshold.getRecordType().equals(recordType))

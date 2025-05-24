@@ -3,7 +3,7 @@ package com.alerts.thresholds;
 import com.data_management.PatientRecord;
 
 /**
- * Represents threshold values for a specific vital sign type.
+ * Holds threshold limits for a vital sign.
  */
 public class VitalsThreshold {
     private String recordType;
@@ -13,6 +13,9 @@ public class VitalsThreshold {
     private double criticalHigh;
     private String description;
 
+    /**
+     * Creates a threshold with the given limits and a short description.
+     */
     public VitalsThreshold(String recordType, double minNormal, double maxNormal,
                            double criticalLow, double criticalHigh, String description) {
         this.recordType = recordType;
@@ -24,10 +27,9 @@ public class VitalsThreshold {
     }
 
     /**
-     * Checks if a patient record violates this threshold
-     *
-     * @param record the patient record to check
-     * @return true if threshold is violated, false otherwise
+     * Checks if a record breaks the threshold.
+     * @param record the record to check
+     * @return true if it violates the limit, false otherwise
      */
     public boolean checkThreshold(PatientRecord record) {
         if (!record.getRecordType().equals(this.recordType)) {
@@ -56,7 +58,7 @@ public class VitalsThreshold {
     }
 
     /**
-     * Special handling for combined blood pressure values
+     * Special check for combined blood pressure values.
      */
     private boolean checkBloodPressureThreshold(double value) {
         // If value is encoded as systolic.diastolic (e.g., 190.80 for 190/80)

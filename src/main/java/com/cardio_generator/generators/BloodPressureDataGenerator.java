@@ -3,12 +3,21 @@ package com.cardio_generator.generators;
 import java.util.Random;
 import com.cardio_generator.outputs.OutputStrategy;
 
+/**
+ * Generates blood pressure data with small variations.
+ */
 public class BloodPressureDataGenerator implements PatientDataGenerator {
     private static final Random random = new Random();
     private final int[] lastSystolicValues;
     private final int[] lastDiastolicValues;
     private final int patientCount;
 
+    /**
+     * Initializes the generator with baseline values.
+     * 
+     * @param patientCount the number of patients to generate data for
+     * @throws IllegalArgumentException if patientCount is not positive
+     */
     public BloodPressureDataGenerator(int patientCount) {
         if (patientCount <= 0) {
             throw new IllegalArgumentException("Patient count must be positive");
@@ -25,6 +34,12 @@ public class BloodPressureDataGenerator implements PatientDataGenerator {
         }
     }
 
+    /**
+     * Generates and sends blood pressure data for a patient.
+     * 
+     * @param patientId the ID of the patient
+     * @param outputStrategy the strategy to output the generated data
+     */
     @Override
     public void generate(int patientId, OutputStrategy outputStrategy) {
         try {

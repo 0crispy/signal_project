@@ -5,15 +5,24 @@ import java.nio.file.*;
 import java.util.stream.Stream;
 
 /**
- * Implementation of DataReader that reads patient data from files in a directory.
+ * Reads patient data from .txt files in a given directory.
  */
 public class FileDataReader implements DataReader {
     private String directoryPath;
 
+    /**
+     * Sets the folder path to read files from.
+     * @param directoryPath path of the folder containing data files
+     */
     public FileDataReader(String directoryPath) {
         this.directoryPath = directoryPath;
     }
 
+    /**
+     * Reads all .txt files in the specified folder and feeds the data into DataStorage.
+     * @param dataStorage storage for patient data
+     * @throws IOException if folder or files can’t be read
+     */
     @Override
     public void readData(DataStorage dataStorage) throws IOException {
         Path dir = Paths.get(directoryPath);
@@ -37,7 +46,10 @@ public class FileDataReader implements DataReader {
     }
 
     /**
-     * Reads a single file and adds data to storage
+     * Reads a single file and adds its content to storage.
+     * @param filePath path of the file to read
+     * @param dataStorage where to put the data
+     * @throws IOException if the file can’t be read
      */
     private void readFile(Path filePath, DataStorage dataStorage) throws IOException {
         try (BufferedReader reader = Files.newBufferedReader(filePath)) {
@@ -63,9 +75,11 @@ public class FileDataReader implements DataReader {
     }
 
     /**
-     * Parses a line of data and adds it to storage.
-     * Expected format: PatientID,Timestamp,RecordType,Value
-     * Alternative format: PatientID,Value,RecordType,Timestamp
+     * Parses a line and adds it to DataStorage.
+     * Expected: PatientID,Timestamp,RecordType,Value 
+     * or: PatientID,Value,RecordType,Timestamp.
+     * @param line the line to parse
+     * @param dataStorage storage for parsed data
      */
     private void parseLine(String line, DataStorage dataStorage) {
         String[] parts = line.split(",");
