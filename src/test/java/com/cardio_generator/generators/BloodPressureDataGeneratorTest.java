@@ -1,56 +1,64 @@
 package com.cardio_generator.generators;
 
 import com.cardio_generator.outputs.OutputStrategy;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.Before;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-class BloodPressureDataGeneratorTest {
+public class BloodPressureDataGeneratorTest {
     private BloodPressureDataGenerator generator;
     private TestOutputStrategy output;
 
-    @BeforeEach
-    void setUp() {
-        generator = new BloodPressureDataGenerator(5); // Test with 5 patients
+    @Before
+    public void setUp() {
+        generator = new BloodPressureDataGenerator(5);
         output = new TestOutputStrategy();
     }
 
     @Test
-    void constructor_ValidPatientCount_InitializesArrays() {
-        assertDoesNotThrow(() -> new BloodPressureDataGenerator(10));
+    public void testConstructorWithValidPatientCount() {
+        try {
+            new BloodPressureDataGenerator(10);
+            assertTrue(true);
+        } catch (Exception e) {
+            fail("Should not throw exception with valid patient count");
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testConstructorWithInvalidPatientCount() {
+        new BloodPressureDataGenerator(0);
     }
 
     @Test
-    void constructor_InvalidPatientCount_ThrowsException() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new BloodPressureDataGenerator(0));
-    }
-
-    @Test
-    void generate_ValidPatientId_ProducesOutput() {
+    public void testGenerateWithValidPatientId() {
         generator.generate(1, output);
-        assertEquals(2, output.getCallCount()); // Both systolic and diastolic
+        assertEquals("Should generate both systolic and diastolic values", 
+            2, output.getCallCount());
     }
 
     @Test
-    void generate_InvalidPatientId_NoOutput() {
+    public void testGenerateWithInvalidPatientId() {
         generator.generate(999, output);
-        assertEquals(0, output.getCallCount());
+        assertEquals("Should not generate output for invalid patient ID", 
+            0, output.getCallCount());
     }
 
     @Test
-    void generate_ValuesStayWithinRanges() {
+    public void testValuesStayWithinRanges() {
         for (int i = 1; i <= 5; i++) {
             generator.generate(i, output);
             int systolic = Integer.parseInt(output.getLastValue("SystolicPressure"));
             int diastolic = Integer.parseInt(output.getLastValue("DiastolicPressure"));
-            assertTrue(systolic >= 90 && systolic <= 180);
-            assertTrue(diastolic >= 60 && diastolic <= 120);
+            
+            assertTrue("Systolic pressure should be between 90 and 180",
+                systolic >= 90 && systolic <= 180);
+            assertTrue("Diastolic pressure should be between 60 and 120",
+                diastolic >= 60 && diastolic <= 120);
         }
     }
 
-    // Helper test output class
-    static class TestOutputStrategy implements OutputStrategy {
+    private static class TestOutputStrategy implements OutputStrategy {
         private int callCount = 0;
         private String lastSystolic;
         private String lastDiastolic;
@@ -60,7 +68,8 @@ class BloodPressureDataGeneratorTest {
             callCount++;
             if ("SystolicPressure".equals(label)) {
                 lastSystolic = data;
-            } else if ("DiastolicPressure".equals(label)) {
+            } 
+            else if ("DiastolicPressure".equals(label)) {
                 lastDiastolic = data;
             }
         }

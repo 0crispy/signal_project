@@ -1,9 +1,8 @@
 package com.alerts;
 
-import com.data_management.PatientRecord;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.Before;
+import org.junit.Test;
+import static org.junit.Assert.*;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.CountDownLatch;
@@ -16,14 +15,14 @@ public class AlertManagerTest {
     private AlertManager alertManager;
     private PatientRecord testRecord;
 
-    @BeforeEach
-    void setUp() {
+    @Before
+    public void setUp() {
         alertManager = new AlertManager();
-        testRecord = new PatientRecord(1, 120.0, "SystolicPressure", 1000L);
+        testRecord = new PatientRecord("SystolicPressure", "120.0");
     }
 
     @Test
-    void testHandleAlert() {
+    public void testHandleAlert() {
         Alert alert = new Alert(1, testRecord, 1000L, "TestAlert", "Test description");
 
         alertManager.handleAlert(alert);
@@ -34,7 +33,7 @@ public class AlertManagerTest {
     }
 
     @Test
-    void testAddListener() {
+    public void testAddListener() {
         AtomicInteger callCount = new AtomicInteger(0);
 
         alertManager.addListener(alert -> callCount.incrementAndGet());
@@ -46,7 +45,7 @@ public class AlertManagerTest {
     }
 
     @Test
-    void testMultipleListeners() {
+    public void testMultipleListeners() {
         AtomicInteger count1 = new AtomicInteger(0);
         AtomicInteger count2 = new AtomicInteger(0);
 
@@ -61,7 +60,7 @@ public class AlertManagerTest {
     }
 
     @Test
-    void testGetAlertsForPatient() {
+    public void testGetAlertsForPatient() {
         Alert alert1 = new Alert(1, testRecord, 1000L, "TestAlert1", "Description 1");
         Alert alert2 = new Alert(2, testRecord, 2000L, "TestAlert2", "Description 2");
         Alert alert3 = new Alert(1, testRecord, 3000L, "TestAlert3", "Description 3");
@@ -78,7 +77,7 @@ public class AlertManagerTest {
     }
 
     @Test
-    void testClearAlerts() {
+    public void testClearAlerts() {
         Alert alert = new Alert(1, testRecord, 1000L, "TestAlert", "Test description");
         alertManager.handleAlert(alert);
 
@@ -90,7 +89,7 @@ public class AlertManagerTest {
     }
 
     @Test
-    void testRemoveListener() {
+    public void testRemoveListener() {
         AtomicInteger callCount = new AtomicInteger(0);
         AlertManager.AlertListener listener = alert -> callCount.incrementAndGet();
 
@@ -102,14 +101,15 @@ public class AlertManagerTest {
 
         assertEquals(0, callCount.get());
     }
+    
     @Test
-    void testHandleNullAlert() {
+    public void testHandleNullAlert() {
         assertThrows(IllegalArgumentException.class, () ->
                 alertManager.handleAlert(null));
     }
 
     @Test
-    void testDuplicateAlertHandling() {
+    public void testDuplicateAlertHandling() {
         Alert alert = new Alert(1, testRecord, 1000L, "TestAlert", "Test");
         alertManager.handleAlert(alert);
         alertManager.handleAlert(alert); // Duplicate
@@ -117,7 +117,7 @@ public class AlertManagerTest {
     }
 
     @Test
-    void testConcurrentAlertHandling() throws InterruptedException {
+    public void testConcurrentAlertHandling() throws InterruptedException {
         final int NUM_THREADS = 10;
         final CountDownLatch latch = new CountDownLatch(NUM_THREADS);
         AtomicInteger alertsProcessed = new AtomicInteger(0);

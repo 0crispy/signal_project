@@ -1,6 +1,5 @@
 package com.alerts;
 
-import com.data_management.PatientRecord;
 import java.util.Objects;
 
 /**
@@ -8,7 +7,7 @@ import java.util.Objects;
  * Contains information about the patient, the vital sign reading that triggered
  * the alert, and the time the alert was generated.
  */
-public class Alert {
+public class Alert implements IAlert {
     private final int patientId;
     private final PatientRecord vitals;
     private final long timestamp;
@@ -46,22 +45,27 @@ public class Alert {
         this.description = description.trim();
     }
 
+    @Override
     public int getPatientId() {
         return this.patientId;
     }
 
+    @Override
     public PatientRecord getVitals() {
         return this.vitals;
     }
 
+    @Override
     public long getTimestamp() {
         return this.timestamp;
     }
 
+    @Override
     public String getAlertType() {
         return this.alertType;
     }
 
+    @Override
     public String getDescription() {
         return this.description;
     }

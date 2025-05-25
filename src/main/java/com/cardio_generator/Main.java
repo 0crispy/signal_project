@@ -1,6 +1,11 @@
 package com.cardio_generator;
 
 import java.io.IOException;
+import com.cardio_generator.outputs.OutputStrategy;
+import com.cardio_generator.outputs.ConsoleOutputStrategy;
+import com.cardio_generator.outputs.FileOutputStrategy;
+import com.cardio_generator.outputs.TcpOutputStrategy;
+import com.cardio_generator.outputs.WebSocketOutputStrategy;
 
 /**
  * Routes commands to the right part of the app.
@@ -30,7 +35,7 @@ public class Main {
                     // Remove the first argument and pass the rest to HealthDataSimulator
                     String[] simulatorArgs = new String[args.length - 1];
                     System.arraycopy(args, 1, simulatorArgs, 0, args.length - 1);
-                    com.cardio_generator.HealthDataSimulator.main(simulatorArgs);
+                    runSimulator(simulatorArgs);
                     break;
 
                 case "help":
@@ -42,11 +47,74 @@ public class Main {
                 default:
                     System.err.println("Unknown command: " + args[0]);
                     printUsage();
-                    System.exit(1);
+                    throw new IllegalArgumentException("Unknown command: " + args[0]);
             }
         } else {
             // Default to HealthDataSimulator for backward compatibility
-            com.cardio_generator.HealthDataSimulator.main(args);
+            runSimulator(args);
+        }
+    }
+
+    /**
+     * runs the simulator with proper initialization and shutdown
+     * @param args command line arguments for the simulator
+     */
+    private static void runSimulator(String[] args) {
+        HealthDataSimulator simulator = HealthDataSimulator.getInstance();
+        
+        String outputType = "console";
+        String outputPath = null;
+        long duration = 1000;
+        
+        for (String arg : args) {
+            if (arg.startsWith("--output=")) {
+                outputType = arg.substring("--output=".length());
+            } 
+            else if (arg.startsWith("--path=")) {
+                outputPath = arg.substring("--path=".length());
+            } 
+            else if (arg.startsWith("--duration=")) {
+
+                try {
+                    duration = Long.parseLong(arg.substring("--duration=".length()));
+                } 
+                catch (NumberFormatException e) {
+                    System.err.println("Invalid duration format. Using default.");
+                }
+            }
+        }
+
+        OutputStrategy outputStrategy;
+        switch (outputType.toLowerCase()) {
+            case "file":
+                if (outputPath == null) {
+                    System.err.println("File output requires --path argument");
+                    return;
+                }
+                outputStrategy = new FileOutputStrategy(outputPath);
+                break;
+            case "tcp":
+                outputStrategy = new TcpOutputStrategy(8080);
+                break;
+            case "websocket":
+                outputStrategy = new WebSocketOutputStrategy(8081);
+                break;
+            case "console":
+            default:
+                outputStrategy = new ConsoleOutputStrategy();
+                break;
+        }
+
+        simulator.addOutputStrategy(outputStrategy);
+        simulator.initializeGenerators(5);
+        simulator.startSimulation(100, duration);
+
+        try {
+            Thread.sleep(duration + 100);
+            simulator.stopSimulation();
+        } catch (InterruptedException e) {
+            simulator.stopSimulation();
+            Thread.currentThread().interrupt();
         }
     }
 

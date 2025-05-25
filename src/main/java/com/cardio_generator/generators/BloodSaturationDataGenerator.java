@@ -17,6 +17,7 @@ public class BloodSaturationDataGenerator implements PatientDataGenerator {
     
     /** Stores the last generated saturation value for each patient */
     int[] lastSaturationValues;
+    private final int maxPatients;
 
     /**
      * Constructs a blood saturation data generator for a specified number of patients.
@@ -25,6 +26,7 @@ public class BloodSaturationDataGenerator implements PatientDataGenerator {
      * @param patientCount the number of patients for which to generate saturation data
      */
     public BloodSaturationDataGenerator(int patientCount) {
+        this.maxPatients = patientCount;
         lastSaturationValues = new int[patientCount + 1];
 
         // Initialize with baseline saturation values for each patient
@@ -40,12 +42,20 @@ public class BloodSaturationDataGenerator implements PatientDataGenerator {
      *
      * @param patientId the identifier of the patient for whom to generate data
      * @param outputStrategy the strategy used to output the generated data
-     * @return void This method doesn't return a value
-     * @throws Exception if an error occurs during data generation or output
      */
     @Override
     public void generate(int patientId, OutputStrategy outputStrategy) {
         try {
+            if (patientId <= 0 || patientId > maxPatients) {
+                System.err.println("Invalid patient ID: " + patientId + " (valid range: 1-" + maxPatients + ")");
+                return;
+            }
+
+            if (outputStrategy == null) {
+                System.err.println("Output strategy cannot be null");
+                return;
+            }
+
             // Simulate blood saturation values
             int variation = random.nextInt(3) - 1; // -1, 0, or 1 to simulate small fluctuations
             int newSaturationValue = lastSaturationValues[patientId] + variation;
@@ -57,7 +67,7 @@ public class BloodSaturationDataGenerator implements PatientDataGenerator {
                     Double.toString(newSaturationValue) + "%");
         } catch (Exception e) {
             System.err.println("An error occurred while generating blood saturation data for patient " + patientId);
-            e.printStackTrace(); // This will print the stack trace to help identify where the error occurred.
+            e.printStackTrace();
         }
     }
 }

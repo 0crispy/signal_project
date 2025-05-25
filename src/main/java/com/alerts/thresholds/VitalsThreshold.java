@@ -32,6 +32,10 @@ public class VitalsThreshold {
      * @return true if it violates the limit, false otherwise
      */
     public boolean checkThreshold(PatientRecord record) {
+        if (!isValidRecordType(record.getRecordType())) {
+            throw new IllegalArgumentException("Invalid vital type: " + record.getRecordType());
+        }
+
         if (!record.getRecordType().equals(this.recordType)) {
             return false;
         }
@@ -84,6 +88,20 @@ public class VitalsThreshold {
 
         // Treat as single value
         return value < criticalLow || value > criticalHigh;
+    }
+
+    /**
+     * checks if a record type is valid
+     * @param recordType the record type to check
+     * @return true if valid, false otherwise
+     */
+    private boolean isValidRecordType(String recordType) {
+        return "SystolicPressure".equals(recordType) ||
+               "DiastolicPressure".equals(recordType) ||
+               "BloodPressure".equals(recordType) ||
+               "BloodSaturation".equals(recordType) ||
+               "HeartRate".equals(recordType) ||
+               "ECG".equals(recordType);
     }
 
     // Getters

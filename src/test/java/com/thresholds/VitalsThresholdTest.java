@@ -2,9 +2,9 @@ package com.thresholds;
 
 import com.alerts.thresholds.VitalsThreshold;
 import com.data_management.PatientRecord;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.Before;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
 /**
  * Test class for VitalsThreshold functionality.
@@ -14,86 +14,99 @@ public class VitalsThresholdTest {
     private VitalsThreshold diastolicThreshold;
     private VitalsThreshold saturationThreshold;
 
-    @BeforeEach
-    void setUp() {
-        // Create thresholds that match the actual implementation
+    @Before
+    public void setUp() {
         systolicThreshold = new VitalsThreshold("SystolicPressure", 90, 180, 70, 200, "Systolic BP threshold");
         diastolicThreshold = new VitalsThreshold("DiastolicPressure", 60, 120, 40, 140, "Diastolic BP threshold");
         saturationThreshold = new VitalsThreshold("BloodSaturation", 92, 100, 88, 100, "Saturation threshold");
     }
 
     @Test
-    void testSystolicPressureThresholdViolation() {
-        // Test high systolic (>180)
+    public void testSystolicPressureThresholdViolation() {
         PatientRecord highSystolic = new PatientRecord(1, 190.0, "SystolicPressure", 1000L);
-        assertTrue(systolicThreshold.checkThreshold(highSystolic), "High systolic pressure should trigger threshold violation");
+        assertTrue("High systolic pressure should trigger threshold violation", 
+            systolicThreshold.checkThreshold(highSystolic));
 
-        // Test low systolic (<90)
         PatientRecord lowSystolic = new PatientRecord(1, 85.0, "SystolicPressure", 2000L);
-        assertTrue(systolicThreshold.checkThreshold(lowSystolic), "Low systolic pressure should trigger threshold violation");
+        assertTrue("Low systolic pressure should trigger threshold violation", 
+            systolicThreshold.checkThreshold(lowSystolic));
 
-        // Test normal systolic
         PatientRecord normalSystolic = new PatientRecord(1, 120.0, "SystolicPressure", 3000L);
-        assertFalse(systolicThreshold.checkThreshold(normalSystolic), "Normal systolic pressure should not trigger threshold violation");
+        assertFalse("Normal systolic pressure should not trigger threshold violation", 
+            systolicThreshold.checkThreshold(normalSystolic));
     }
 
     @Test
-    void testDiastolicPressureThresholdViolation() {
-        // Test high diastolic (>120)
-        PatientRecord highDiastolic = new PatientRecord(1, 125.0, "DiastolicPressure", 1000L);
-        assertTrue(diastolicThreshold.checkThreshold(highDiastolic), "High diastolic pressure should trigger threshold violation");
+    public void testDiastolicPressureThresholdViolation() {
+        PatientRecord highDiastolic = new PatientRecord(1, 130.0, "DiastolicPressure", 1000L);
+        assertTrue("High diastolic pressure should trigger threshold violation", 
+            diastolicThreshold.checkThreshold(highDiastolic));
 
-        // Test low diastolic (<60)
         PatientRecord lowDiastolic = new PatientRecord(1, 55.0, "DiastolicPressure", 2000L);
-        assertTrue(diastolicThreshold.checkThreshold(lowDiastolic), "Low diastolic pressure should trigger threshold violation");
+        assertTrue("Low diastolic pressure should trigger threshold violation", 
+            diastolicThreshold.checkThreshold(lowDiastolic));
 
-        // Test normal diastolic
         PatientRecord normalDiastolic = new PatientRecord(1, 80.0, "DiastolicPressure", 3000L);
-        assertFalse(diastolicThreshold.checkThreshold(normalDiastolic), "Normal diastolic pressure should not trigger threshold violation");
+        assertFalse("Normal diastolic pressure should not trigger threshold violation", 
+            diastolicThreshold.checkThreshold(normalDiastolic));
     }
 
     @Test
-    void testSaturationThresholdViolation() {
-        // Test low saturation (<92)
-        PatientRecord lowSat = new PatientRecord(1, 88.0, "BloodSaturation", 1000L);
-        assertTrue(saturationThreshold.checkThreshold(lowSat), "Low saturation should trigger threshold violation");
+    public void testSaturationThresholdViolation() {
+        PatientRecord lowSaturation = new PatientRecord(1, 90.0, "BloodSaturation", 1000L);
+        assertTrue("Low blood saturation should trigger threshold violation", 
+            saturationThreshold.checkThreshold(lowSaturation));
 
-        // Test normal saturation
-        PatientRecord normalSat = new PatientRecord(1, 98.0, "BloodSaturation", 2000L);
-        assertFalse(saturationThreshold.checkThreshold(normalSat), "Normal saturation should not trigger threshold violation");
+        PatientRecord criticalSaturation = new PatientRecord(1, 88.0, "BloodSaturation", 2000L);
+        assertTrue("Critical blood saturation should trigger threshold violation", 
+            saturationThreshold.checkThreshold(criticalSaturation));
+
+        PatientRecord normalSaturation = new PatientRecord(1, 95.0, "BloodSaturation", 3000L);
+        assertFalse("Normal blood saturation should not trigger threshold violation", 
+            saturationThreshold.checkThreshold(normalSaturation));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testInvalidVitalType() {
+        PatientRecord invalidRecord = new PatientRecord(1, 100.0, "InvalidType", 1000L);
+        systolicThreshold.checkThreshold(invalidRecord);
     }
 
     @Test
-    void testWrongRecordType() {
+    public void testWrongRecordType() {
         PatientRecord ecgRecord = new PatientRecord(1, 0.8, "ECG", 1000L);
-        assertFalse(systolicThreshold.checkThreshold(ecgRecord), "Wrong record type should not trigger threshold violation");
-        assertFalse(saturationThreshold.checkThreshold(ecgRecord), "Wrong record type should not trigger threshold violation");
+        assertFalse("Wrong record type should not trigger threshold violation",
+                systolicThreshold.checkThreshold(ecgRecord));
+        assertFalse("Wrong record type should not trigger threshold violation",
+                saturationThreshold.checkThreshold(ecgRecord));
     }
 
     @Test
-    void testBoundaryValues() {
-        // Test exact boundary values for systolic
+    public void testBoundaryValues() {
         PatientRecord systolic90 = new PatientRecord(1, 90.0, "SystolicPressure", 1000L);
-        assertFalse(systolicThreshold.checkThreshold(systolic90), "Systolic pressure of exactly 90 should not trigger violation");
+        assertFalse("Systolic pressure of exactly 90 should not trigger violation",
+                systolicThreshold.checkThreshold(systolic90));
 
         PatientRecord systolic180 = new PatientRecord(1, 180.0, "SystolicPressure", 2000L);
-        assertFalse(systolicThreshold.checkThreshold(systolic180), "Systolic pressure of exactly 180 should not trigger violation");
+        assertFalse("Systolic pressure of exactly 180 should not trigger violation",
+                systolicThreshold.checkThreshold(systolic180));
 
-        // Test just outside boundaries
         PatientRecord systolic89 = new PatientRecord(1, 89.0, "SystolicPressure", 3000L);
-        assertTrue(systolicThreshold.checkThreshold(systolic89), "Systolic pressure of 89 should trigger violation");
+        assertTrue("Systolic pressure of 89 should trigger violation",
+                systolicThreshold.checkThreshold(systolic89));
 
         PatientRecord systolic181 = new PatientRecord(1, 181.0, "SystolicPressure", 4000L);
-        assertTrue(systolicThreshold.checkThreshold(systolic181), "Systolic pressure of 181 should trigger violation");
+        assertTrue("Systolic pressure of 181 should trigger violation",
+                systolicThreshold.checkThreshold(systolic181));
     }
 
     @Test
-    void testGetters() {
+    public void testGetters() {
         assertEquals("SystolicPressure", systolicThreshold.getRecordType());
-        assertEquals(90.0, systolicThreshold.getMinNormal());
-        assertEquals(180.0, systolicThreshold.getMaxNormal());
-        assertEquals(70.0, systolicThreshold.getCriticalLow());
-        assertEquals(200.0, systolicThreshold.getCriticalHigh());
+        assertEquals(90.0, systolicThreshold.getMinNormal(), 0.001);
+        assertEquals(180.0, systolicThreshold.getMaxNormal(), 0.001);
+        assertEquals(70.0, systolicThreshold.getCriticalLow(), 0.001);
+        assertEquals(200.0, systolicThreshold.getCriticalHigh(), 0.001);
         assertEquals("Systolic BP threshold", systolicThreshold.getDescription());
     }
 }

@@ -19,6 +19,9 @@ public class AlertGenerator implements PatientDataGenerator {
     
     /** Tracks the current alert state for each patient (true = triggered, false = resolved) */
     boolean[] AlertStates;
+    private final int maxPatients;
+    private static final double TRIGGER_PROBABILITY = 0.4; // 40% chance to trigger
+    private static final double RESOLVE_PROBABILITY = 0.3; // 30% chance to resolve
 
     /**
      * Constructs an alert generator for a specified number of patients.
@@ -27,6 +30,7 @@ public class AlertGenerator implements PatientDataGenerator {
      * @param patientCount the number of patients for which to generate alerts
      */
     public AlertGenerator(int patientCount) {
+        this.maxPatients = patientCount;
         AlertStates = new boolean[patientCount + 1];
     }
 
@@ -37,32 +41,75 @@ public class AlertGenerator implements PatientDataGenerator {
      *
      * @param patientId the identifier of the patient for whom to generate alerts
      * @param outputStrategy the strategy used to output the generated alerts
-     * @return void This method doesn't return a value
-     * @throws Exception if an error occurs during alert generation or output
      */
     @Override
     public void generate(int patientId, OutputStrategy outputStrategy) {
         try {
+            if (patientId <= 0 || patientId > maxPatients) {
+                System.err.println("Invalid patient ID: " + patientId + " (valid range: 1-" + maxPatients + ")");
+                return;
+            }
+            if (outputStrategy == null) {
+                System.err.println("Output strategy cannot be null");
+                return;
+            }
+
+            double rand = randomGenerator.nextDouble();
             if (AlertStates[patientId]) {
-                if (randomGenerator.nextDouble() < 0.9) { // 90% chance to resolve
+                if (rand < RESOLVE_PROBABILITY) {
                     AlertStates[patientId] = false;
-                    // Output the alert
                     outputStrategy.output(patientId, System.currentTimeMillis(), "Alert", "resolved");
                 }
-            } else {
-                double Lambda = 0.1; // Average rate (alerts per period), adjust based on desired frequency
-                double p = -Math.expm1(-Lambda); // Probability of at least one alert in the period
-                boolean alertTriggered = randomGenerator.nextDouble() < p;
-
-                if (alertTriggered) {
+            } 
+            else {
+                if (rand < TRIGGER_PROBABILITY) {
                     AlertStates[patientId] = true;
-                    // Output the alert
                     outputStrategy.output(patientId, System.currentTimeMillis(), "Alert", "triggered");
                 }
             }
         } catch (Exception e) {
-            System.err.println("An error occurred while generating alert data for patient " + patientId);
+            System.err.println("An error occurred while generating alerts for patient " + patientId);
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * gets the current alert state for a patient.
+     * 
+     * @param patientId the patient Id
+     * @return true if the patient has an active alert, false otherwise
+     * @throws IllegalArgumentException if the patient Id is invalid
+     */
+    public boolean isAlertActive(int patientId) {
+        if (patientId <= 0 || patientId > maxPatients) {
+            throw new IllegalArgumentException("Invalid patient ID: " + patientId);
+        }
+        return AlertStates[patientId];
+    }
+
+    /**
+     * forces some alert state for testing purposes.
+     * 
+     * @param patientId the patient to set
+     * @param state the alert state to set
+     * @param outputStrategy the strategy used to output the state change
+     * @throws IllegalArgumentException if the patient Idis invalid
+     */
+    public void setAlertState(int patientId, boolean state, OutputStrategy outputStrategy) {
+        if (patientId <= 0 || patientId > maxPatients) {
+            throw new IllegalArgumentException("Invalid patient ID: " + patientId);
+        }
+        if (outputStrategy == null) {
+            throw new IllegalArgumentException("Output strategy cannot be null");
+            
+        }
+        AlertStates[patientId] = state;
+        // Always output the state change
+        if (state) {
+            outputStrategy.output(patientId, System.currentTimeMillis(),  "Alert", "triggered");
+        } 
+        else {
+            outputStrategy.output(patientId, System.currentTimeMillis(),  "Alert", "resolved");
         }
     }
 }

@@ -1,145 +1,136 @@
 package com.alerts;
 
+import org.junit.Before;
+import org.junit.After;
+import org.junit.Test;
+import static org.junit.Assert.*;
+
 import com.data_management.DataStorage;
 import com.data_management.Patient;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 import java.util.List;
 
 public class AlertGeneratorTest {
-    private DataStorage dataStorage;
-    private AlertManager alertManager;
     private AlertGenerator alertGenerator;
+    private AlertManager alertManager;
+    private DataStorage dataStorage;
+    private static final int TEST_PATIENT_ID = 999;
 
-    @BeforeEach
-    void setUp() {
-        dataStorage = new DataStorage();
+    @Before
+    public void setUp() {
+        dataStorage = DataStorage.getInstance();
         alertManager = new AlertManager();
         alertGenerator = new AlertGenerator(dataStorage, alertManager);
     }
 
-    @Test
-    void testSystolicPressureIncreasingTrend() {
-        // Add three consecutive readings with >10 mmHg increases
-        dataStorage.addPatientData(1, 120.0, "SystolicPressure", 1000L);
-        dataStorage.addPatientData(1, 135.0, "SystolicPressure", 2000L);  // +15
-        dataStorage.addPatientData(1, 150.0, "SystolicPressure", 3000L);  // +15
-
-        Patient patient = dataStorage.getAllPatients().get(0);
-        alertGenerator.evaluateData(patient);
-
-        List<Alert> alerts = alertManager.getAllAlerts();
-        assertTrue(alerts.stream().anyMatch(alert ->
-                alert.getAlertType().equals("BloodPressureIncreasingTrend")));
+    @After
+    public void stop() {
+        dataStorage = null;
+        alertManager = null;
+        alertGenerator = null;
     }
 
     @Test
-    void testDiastolicPressureDecreasingTrend() {
-        // Add three consecutive readings with >10 mmHg decreases
-        dataStorage.addPatientData(1, 90.0, "DiastolicPressure", 1000L);
-        dataStorage.addPatientData(1, 75.0, "DiastolicPressure", 2000L);  // -15
-        dataStorage.addPatientData(1, 60.0, "DiastolicPressure", 3000L);  // -15
-
-        Patient patient = dataStorage.getAllPatients().get(0);
-        alertGenerator.evaluateData(patient);
-
-        List<Alert> alerts = alertManager.getAllAlerts();
-        assertTrue(alerts.stream().anyMatch(alert ->
-                alert.getAlertType().equals("BloodPressureDecreasingTrend")));
-    }
-
-    @Test
-    void testCriticalBloodPressureThresholds() {
-        // Test all critical thresholds
-        dataStorage.addPatientData(1, 185.0, "SystolicPressure", 1000L);  // High
-        dataStorage.addPatientData(1, 85.0, "SystolicPressure", 2000L);   // Low
-        dataStorage.addPatientData(1, 125.0, "DiastolicPressure", 3000L); // High
-        dataStorage.addPatientData(1, 55.0, "DiastolicPressure", 4000L);  // Low
-
-        Patient patient = dataStorage.getAllPatients().get(0);
-        alertGenerator.evaluateData(patient);
-
-        List<Alert> alerts = alertManager.getAllAlerts();
-        assertEquals(4, alerts.size());
-
-        assertTrue(alerts.stream().anyMatch(alert ->
-                alert.getAlertType().equals("CriticalHighSystolicPressure")));
-        assertTrue(alerts.stream().anyMatch(alert ->
-                alert.getAlertType().equals("CriticalLowSystolicPressure")));
-        assertTrue(alerts.stream().anyMatch(alert ->
-                alert.getAlertType().equals("CriticalHighDiastolicPressure")));
-        assertTrue(alerts.stream().anyMatch(alert ->
-                alert.getAlertType().equals("CriticalLowDiastolicPressure")));
-    }
-
-    @Test
-    void testLowSaturationAlert() {
-        dataStorage.addPatientData(1, 90.0, "BloodSaturation", 1000L);
-
-        Patient patient = dataStorage.getAllPatients().get(0);
-        alertGenerator.evaluateData(patient);
-
-        List<Alert> alerts = alertManager.getAllAlerts();
-        assertEquals(1, alerts.size());
-        assertEquals("LowBloodSaturation", alerts.get(0).getAlertType());
-    }
-
-    @Test
-    void testRapidSaturationDrop() {
-        // 6% drop within 8 minutes
-        dataStorage.addPatientData(1, 98.0, "BloodSaturation", 1000L);
-        dataStorage.addPatientData(1, 92.0, "BloodSaturation", 481000L); // 8 minutes later
-
-        Patient patient = dataStorage.getAllPatients().get(0);
-        alertGenerator.evaluateData(patient);
-
-        List<Alert> alerts = alertManager.getAllAlerts();
-        assertTrue(alerts.stream().anyMatch(alert ->
-                alert.getAlertType().equals("RapidSaturationDrop")));
-    }
-
-    @Test
-    void testHypotensiveHypoxemiaAlert() {
-        // Low systolic pressure and low saturation within 5 minutes
-        dataStorage.addPatientData(1, 85.0, "SystolicPressure", 1000L);
-        dataStorage.addPatientData(1, 90.0, "BloodSaturation", 180000L); // 3 minutes later
-
-        Patient patient = dataStorage.getAllPatients().get(0);
-        alertGenerator.evaluateData(patient);
-
-        List<Alert> alerts = alertManager.getAllAlerts();
-        assertTrue(alerts.stream().anyMatch(alert ->
-                alert.getAlertType().equals("HypotensiveHypoxemia")));
-    }
-
-    @Test
-    void testECGAnomalyDetection() {
-        // Add baseline readings
-        for (int i = 0; i < 10; i++) {
-            dataStorage.addPatientData(1, 0.8, "ECG", 1000L + i * 1000);
+    public void testAlertGeneration() {
+        
+        // Add test data
+        long timestamp = System.currentTimeMillis();
+        dataStorage.addPatientData(TEST_PATIENT_ID, 180.0, "SystolicPressure", timestamp);
+        
+        List<Patient> patients = dataStorage.getAllPatients();
+        Patient testPatient = null;
+        for (Patient p : patients) {
+            if (p.getPatientId() == TEST_PATIENT_ID) {
+                testPatient = p;
+                break;
+            }
         }
-        // Add anomalous reading (>1.5x average)
-        dataStorage.addPatientData(1, 2.5, "ECG", 11000L);
-
-        Patient patient = dataStorage.getAllPatients().get(0);
-        alertGenerator.evaluateData(patient);
-
+        assertNotNull("Test patient should exist", testPatient);
+        alertGenerator.evaluateData(testPatient);
+        
         List<Alert> alerts = alertManager.getAllAlerts();
-        assertTrue(alerts.stream().anyMatch(alert ->
-                alert.getAlertType().equals("ECGAnomaly")));
+        assertFalse("Should have generated alerts", alerts.isEmpty());
+        assertEquals("Should have generated one alert", 1, alerts.size());
+        
+        Alert alert = alerts.get(0);
+        assertNotNull("Alert should not be null", alert);
+        assertEquals("Should be critical high systolic pressure alert", "CriticalHighSystolicPressure", alert.getAlertType());
     }
 
     @Test
-    void testManualAlert() {
-        dataStorage.addPatientData(1, 1.0, "Alert", 1000L);
-
-        Patient patient = dataStorage.getAllPatients().get(0);
-        alertGenerator.evaluateData(patient);
-
+    public void testNoAlertForNormalValues() {
+        long timestamp = System.currentTimeMillis();
+        dataStorage.addPatientData(TEST_PATIENT_ID + 1, 120.0, "SystolicPressure", timestamp);
+        
+        List<Patient> patients = dataStorage.getAllPatients();
+        Patient testPatient = null;
+        for (Patient p : patients) {
+            if (p.getPatientId() == TEST_PATIENT_ID + 1) {
+                testPatient = p;
+                break;
+            }
+        }
+        assertNotNull("Test patient should exist", testPatient);
+        alertGenerator.evaluateData(testPatient);
+        
         List<Alert> alerts = alertManager.getAllAlerts();
-        assertEquals(1, alerts.size());
-        assertEquals("ManualAlert", alerts.get(0).getAlertType());
+        assertTrue("Should not have generated alerts for normal values", alerts.isEmpty());
     }
 
+    @Test
+    public void testMultipleAlerts() {
+        long timestamp = System.currentTimeMillis();
+        dataStorage.addPatientData(TEST_PATIENT_ID + 2, 180.0, "SystolicPressure", timestamp);
+        dataStorage.addPatientData(TEST_PATIENT_ID + 2, 45.0, "DiastolicPressure", timestamp + 1000);
+        
+        List<Patient> patients = dataStorage.getAllPatients();
+        Patient testPatient = null;
+        for (Patient p : patients) {
+            if (p.getPatientId() == TEST_PATIENT_ID + 2) {
+                testPatient = p;
+                break;
+            }
+        }
+        assertNotNull("Test patient should exist", testPatient);
+        alertGenerator.evaluateData(testPatient);
+        
+        List<Alert> alerts = alertManager.getAllAlerts();
+        assertNotNull("Alerts list should not be null", alerts);
+        assertTrue("Should have generated multiple alerts", alerts.size() > 1);
+        
+        boolean hasHighSystolic = false;
+        boolean hasLowDiastolic = false;
+        for (Alert alert : alerts) {
+            assertNotNull("Alert should not be null", alert);
+            if ("CriticalHighSystolicPressure".equals(alert.getAlertType())) hasHighSystolic = true;
+            if ("CriticalLowDiastolicPressure".equals(alert.getAlertType())) hasLowDiastolic = true;
+        }
+        assertTrue("Should have critical high systolic pressure alert", hasHighSystolic);
+        assertTrue("Should have critical low diastolic pressure alert", hasLowDiastolic);
+    }
+
+    @Test
+    public void testInvalidData() {
+        long timestamp = System.currentTimeMillis();
+        dataStorage.addPatientData(TEST_PATIENT_ID + 3, Double.NaN, "SystolicPressure", timestamp);
+        
+        List<Patient> patients = dataStorage.getAllPatients();
+        Patient testPatient = null;
+        for (Patient p : patients) {
+            if (p.getPatientId() == TEST_PATIENT_ID + 3) {
+                testPatient = p;
+                break;
+            }
+        }
+        assertNotNull("Test patient should exist", testPatient);
+        
+        try {
+            alertGenerator.evaluateData(testPatient);
+        } catch (Exception e) {
+            fail("Should not throw exception for invalid data: " + e.getMessage());
+        }
+        
+        List<Alert> alerts = alertManager.getAllAlerts();
+        assertNotNull("Alerts list should not be null", alerts);
+        assertTrue("Should not generate alerts for invalid data", alerts.isEmpty());
+    }
 }

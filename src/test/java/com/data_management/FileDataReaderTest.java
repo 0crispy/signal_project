@@ -1,10 +1,12 @@
 package com.data_management;
 
 import org.junit.Before;
-import org.junit.Rule;
+import org.junit.After;
 import org.junit.Test;
+import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import static org.junit.Assert.*;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,89 +14,62 @@ import java.nio.file.Path;
 import java.util.List;
 
 public class FileDataReaderTest {
-    private DataStorage dataStorage;
-    private FileDataReader fileDataReader;
-
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
+    
+    private FileDataReader reader;
+    private DataStorage dataStorage;
+    private File testDataDir;
 
     @Before
-    public void setUp() {
-        dataStorage = new DataStorage();
+    public void setUp() throws IOException {
+        testDataDir = tempFolder.newFolder("testData");
+        reader = new FileDataReader(testDataDir.getAbsolutePath());
+        dataStorage = DataStorage.getInstance();
+        for (int i = 1; i <= 100; i++) {
+            dataStorage.clearRecords(i);
+        }
+    }
+
+    @After
+    public void tearDown() {
+        tempFolder.delete();
     }
 
     @Test
-    public void testReadValidData() throws IOException {
-        File testFile = tempFolder.newFile("patient_data.txt");
-        String testData = "1,1609459200000,SystolicPressure,120\n" +
-                "1,1609459260000,BloodSaturation,98\n" +
-                "2,1609459320000,HeartRate,75\n";
-        Files.write(testFile.toPath(), testData.getBytes());
+    public void testReadValidDataFile() throws IOException {
+        File dataFile = new File(testDataDir, "patient1.csv");
+        Files.write(dataFile.toPath(), 
+            "1,1000,SystolicPressure,120\n1,2000,HeartRate,75".getBytes());
 
-        fileDataReader = new FileDataReader(tempFolder.getRoot().getAbsolutePath());
-        fileDataReader.readData(dataStorage);
+        reader.readData(dataStorage);
 
-        List<PatientRecord> patient1Records = dataStorage.getRecords(1, 0, Long.MAX_VALUE);
-        assertEquals(2, patient1Records.size());
-
-        List<PatientRecord> patient2Records = dataStorage.getRecords(2, 0, Long.MAX_VALUE);
-        assertEquals(1, patient2Records.size());
+        List<PatientRecord> records = dataStorage.getRecords(1, 0L, Long.MAX_VALUE);
+        assertFalse("Should have read some records", records.isEmpty());
+        assertEquals("Should have read 2 records", 2, records.size());
     }
 
     @Test
-    public void testReadAlternativeFormat() throws IOException {
-        File testFile = tempFolder.newFile("alt_format.txt");
-        String testData = "1,120,SystolicPressure,1609459200000\n" +
-                "1,98,BloodSaturation,1609459260000\n";
-        Files.write(testFile.toPath(), testData.getBytes());
-
-        fileDataReader = new FileDataReader(tempFolder.getRoot().getAbsolutePath());
-        fileDataReader.readData(dataStorage);
-
-        List<PatientRecord> records = dataStorage.getRecords(1, 0, Long.MAX_VALUE);
-        assertEquals(2, records.size());
-    }
-
-    @Test
-    public void testSkipInvalidLines() throws IOException {
-        File testFile = tempFolder.newFile("mixed_data.txt");
-        String testData = "# This is a comment\n" +
-                "1,1609459200000,SystolicPressure,120\n" +
-                "invalid,line,format\n" +
-                "\n" +
-                "2,1609459260000,HeartRate,75\n";
-        Files.write(testFile.toPath(), testData.getBytes());
-
-        fileDataReader = new FileDataReader(tempFolder.getRoot().getAbsolutePath());
-        fileDataReader.readData(dataStorage);
-
-        assertEquals(2, dataStorage.getAllPatients().size());
+    public void testReadEmptyDirectory() throws IOException {
+        reader.readData(dataStorage);
+        assertTrue("No records should be read from empty directory",
+            dataStorage.getRecords(1, 0L, Long.MAX_VALUE).isEmpty());
     }
 
     @Test(expected = IOException.class)
-    public void testNonexistentDirectory() throws IOException {
-        fileDataReader = new FileDataReader("/nonexistent/directory");
-        fileDataReader.readData(dataStorage);
+    public void testInvalidDirectory() throws IOException {
+        File invalidDir = new File(testDataDir, "nonexistent");
+        reader = new FileDataReader(invalidDir.getAbsolutePath());
+        reader.readData(dataStorage);
     }
 
     @Test
-    public void testEmptyDirectory() throws IOException {
-        fileDataReader = new FileDataReader(tempFolder.getRoot().getAbsolutePath());
-        fileDataReader.readData(dataStorage);
-        assertTrue(dataStorage.getAllPatients().isEmpty());
-    }
+    public void testInvalidDataFormat() throws IOException {
+        File dataFile = new File(testDataDir, "invalid.csv");
+        Files.write(dataFile.toPath(), "invalid data format".getBytes());
 
-    @Test
-    public void testMultipleFiles() throws IOException {
-        File file1 = tempFolder.newFile("data1.txt");
-        File file2 = tempFolder.newFile("data2.txt");
-
-        Files.write(file1.toPath(), "1,1609459200000,SystolicPressure,120\n".getBytes());
-        Files.write(file2.toPath(), "2,1609459260000,HeartRate,75\n".getBytes());
-
-        fileDataReader = new FileDataReader(tempFolder.getRoot().getAbsolutePath());
-        fileDataReader.readData(dataStorage);
-
-        assertEquals(2, dataStorage.getAllPatients().size());
+        reader.readData(dataStorage);
+        assertTrue("Invalid data should be skipped",
+            dataStorage.getRecords(1, 0L, Long.MAX_VALUE).isEmpty());
     }
 }

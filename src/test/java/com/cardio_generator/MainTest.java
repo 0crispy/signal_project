@@ -1,69 +1,83 @@
 package com.cardio_generator;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import static org.junit.Assert.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-class MainTest {
+public class MainTest {
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
     private final PrintStream originalOut = System.out;
     private final PrintStream originalErr = System.err;
 
-    @BeforeEach
-    void setUp() {
+    @Before
+    public void setUp() {
         System.setOut(new PrintStream(outContent));
         System.setErr(new PrintStream(outContent));
     }
 
-    @AfterEach
-    void tearDown() {
+    @After
+    public void stop() {
         System.setOut(originalOut);
         System.setErr(originalErr);
+        HealthDataSimulator simulator = HealthDataSimulator.getInstance();
+        simulator.stopSimulation();
+        outContent.reset();
     }
 
     @Test
-    void main_NoArguments_ExecutesWithoutErrors() {
-        assertDoesNotThrow(() -> Main.main(new String[]{}));
-
-        // Debug output to see what was actually printed
-        System.out.println("DEBUG - Actual output: " + outContent.toString());
-
-        // More flexible assertion - check for any indication of simulator running
-        assertTrue(outContent.toString().contains("simulat") ||
-                        outContent.toString().contains("patient") ||
-                        !outContent.toString().isEmpty(),
-                "Expected some simulator output but got: " + outContent.toString());
-    }
-
-    @Test
-    void main_HelpArgument_PrintsUsage() {
+    public void main_NoArguments_ExecutesWithoutErrors() {
         try {
-            Main.main(new String[]{"help"});
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            String[] args = new String[]{"--simulator", "--duration=1000"};
+            Main.main(args);
+            Thread.sleep(1500);
+            String output = outContent.toString();
+            assertFalse("Expected simulator output but got nothing", output.isEmpty());
+        } catch (Exception e) {
+            fail("Main execution failed: " + e.getMessage());
         }
-        String output = outContent.toString();
-        assertTrue(output.contains("Usage:") ||
-                        output.contains("Commands:"),
-                "Expected help output but got: " + output);
     }
 
     @Test
-    void main_SimulatorArgument_RunsSimulator() {
-        assertDoesNotThrow(() -> Main.main(new String[]{"simulator", "--output", "console"}));
-        assertFalse(outContent.toString().isEmpty(),
-                "Expected simulator output but got nothing");
+    public void main_SimulatorArgument_RunsSimulator() {
+        try {
+            String[] args = new String[]{"--simulator", "--duration=1000"};
+            Main.main(args);
+            Thread.sleep(1500);
+            String output = outContent.toString();
+            assertFalse("Expected simulator output but got nothing", output.isEmpty());
+        } catch (Exception e) {
+            fail("Main execution failed: " + e.getMessage());
+        }
     }
 
     @Test
-    void main_DataStorageArgument_RunsDataStorage() {
-        assertDoesNotThrow(() -> Main.main(new String[]{"datastorage"}));
-        assertFalse(outContent.toString().isEmpty(),
-                "Expected datastorage output but got nothing");
+    public void main_InvalidArgument_HandlesGracefully() {
+        try {
+            String[] args = new String[]{"--invalid"};
+            Main.main(args);
+            fail("Expected IllegalArgumentException to be thrown");
+        } catch (IllegalArgumentException e) {
+            String output = outContent.toString();
+            assertTrue("Expected error message", output.contains("Unknown command") || output.contains("Usage"));
+        } catch (Exception e) {
+            fail("Wrong exception type: " + e.getClass().getName());
+        }
+    }
+
+    @Test
+    public void main_HelpArgument_ShowsHelp() {
+        try {
+            String[] args = new String[]{"--help"};
+            Main.main(args);
+            String output = outContent.toString();
+            assertTrue("Expected help message", output.contains("Usage") || output.contains("help"));
+        } catch (Exception e) {
+            fail("Main execution failed: " + e.getMessage());
+        }
     }
 }

@@ -2,9 +2,6 @@ package com.alerts;
 
 import java.util.Set;
 
-/**
- * Represents a staff member who gets alerts.
- */
 public class MedicalStaff {
     private int id;
     private String name;

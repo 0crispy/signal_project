@@ -14,7 +14,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <project.resources.sourceEncoding>UTF-8</project.resources.sourceEncoding>
-        <jacoco.version>0.8.8</jacoco.version>
+        <jacoco.version>0.8.11</jacoco.version>
     </properties>
 
     <dependencies>
@@ -33,20 +33,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
-            <version>5.8.2</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>4.11.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-junit-jupiter</artifactId>
             <version>4.11.0</version>
             <scope>test</scope>
         </dependency>
@@ -54,17 +42,14 @@
 
     <build>
         <plugins>
-            <!-- Compiler Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
                 <configuration>
-                    <jvm>${java.home}/bin/java</jvm>
                     <argLine>-Dfile.encoding=UTF-8 --add-opens=java.base/java.lang=ALL-UNNAMED</argLine>
                 </configuration>
             </plugin>
-            <!-- Spring Boot Plugin -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -80,12 +65,11 @@
                     <mainClass>com.cardio_generator.HealthDataSimulator</mainClass>
                 </configuration>
             </plugin>
-
-                    <!-- JaCoCo Configuration -->
+            <!-- Temporarily disabled due to Java 24 compatibility issues
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.8</version>
+                <version>0.8.11</version>
                 <executions>
                     <execution>
                         <id>default-prepare-agent</id>
@@ -102,21 +86,7 @@
                     </execution>
                 </executions>
             </plugin>
-
-                    <!-- Surefire Plugin Configuration -->
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <version>3.2.5</version>
-                        <configuration>
-                            <argLine>@{argLine} -Dfile.encoding=UTF-8</argLine>
-                            <includes>
-                                <include>**/*Test.java</include>
-                                <include>**/*Tests.java</include>
-                            </includes>
-                        </configuration>
-                    </plugin>
-
+            -->
         </plugins>
     </build>
 </project>

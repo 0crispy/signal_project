@@ -21,7 +21,7 @@ public class FileDataReader implements DataReader {
     /**
      * Reads all .txt files in the specified folder and feeds the data into DataStorage.
      * @param dataStorage storage for patient data
-     * @throws IOException if folder or files can’t be read
+     * @throws IOException if folder or files can't be read
      */
     @Override
     public void readData(DataStorage dataStorage) throws IOException {
@@ -34,7 +34,7 @@ public class FileDataReader implements DataReader {
         // Read all .txt files in the directory
         try (Stream<Path> files = Files.walk(dir)) {
             files.filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".txt"))
+                    .filter(path -> path.toString().endsWith(".txt") || path.toString().endsWith(".csv"))
                     .forEach(file -> {
                         try {
                             readFile(file, dataStorage);
@@ -49,7 +49,7 @@ public class FileDataReader implements DataReader {
      * Reads a single file and adds its content to storage.
      * @param filePath path of the file to read
      * @param dataStorage where to put the data
-     * @throws IOException if the file can’t be read
+     * @throws IOException if the file can't be read
      */
     private void readFile(Path filePath, DataStorage dataStorage) throws IOException {
         try (BufferedReader reader = Files.newBufferedReader(filePath)) {

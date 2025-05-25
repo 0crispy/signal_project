@@ -12,19 +12,38 @@ import com.alerts.thresholds.PatientThresholdProfile;
 
 /**
  * Manages storage and retrieval of patient data within a healthcare monitoring
- * system.
+ * system using the Singleton pattern.
  * This class serves as a repository for all patient records, organized by
  * patient IDs.
  */
 public class DataStorage {
     private Map<Integer, Patient> patientMap; // Stores patient objects indexed by their unique patient ID.
+    private static DataStorage instance;
+    private static final Object LOCK = new Object();
 
     /**
-     * Constructs a new instance of DataStorage, initializing the underlying storage
-     * structure.
+     * Private constructor to prevent direct instantiation.
+     * Initializes the underlying storage structure.
      */
-    public DataStorage() {
+    private DataStorage() {
         this.patientMap = new HashMap<>();
+    }
+
+    /**
+     * Gets the singleton instance of DataStorage.
+     * Creates it if it doesn't exist using double-checked locking.
+     * 
+     * @return the singleton instance of DataStorage
+     */
+    public static DataStorage getInstance() {
+        if (instance == null) {
+            synchronized (LOCK) {
+                if (instance == null) {
+                    instance = new DataStorage();
+                }
+            }
+        }
+        return instance;
     }
 
     /**
@@ -98,6 +117,21 @@ public class DataStorage {
     }
 
     /**
+     * Clears all records from the data storage.
+     */
+    public void clearAllRecords() {
+        patientMap.clear();
+    }
+
+    /**
+     * Clears all records for a specific patient.
+     * @param patientId the ID of the patient whose records should be cleared
+     */
+    public void clearRecords(int patientId) {
+        patientMap.remove(patientId);
+    }
+
+    /**
      * The main method for the DataStorage class.
      * Initializes the system, reads data into storage, and continuously monitors
      * and evaluates patient data.
@@ -105,7 +139,7 @@ public class DataStorage {
      * @param args command line arguments
      */
     public static void main(String[] args) {
-        DataStorage storage = new DataStorage();
+        DataStorage storage = DataStorage.getInstance();
         AlertManager alertManager = new AlertManager();
         
         // Example alert listener implementation to handle alerts

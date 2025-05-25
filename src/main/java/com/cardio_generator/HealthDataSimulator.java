@@ -7,7 +7,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import com.cardio_generator.generators.AlertGenerator;
-
 import com.cardio_generator.generators.BloodPressureDataGenerator;
 import com.cardio_generator.generators.BloodSaturationDataGenerator;
 import com.cardio_generator.generators.BloodLevelsDataGenerator;
@@ -29,174 +28,214 @@ import java.util.ArrayList;
 
 /**
  * Simulates health data for patients and sends it out via different strategies.
+ * this implements the Singleton pattern to ensure that only single simulator instamce exists
  */
 public class HealthDataSimulator {
+    private static HealthDataSimulator instance;
+    private static final Object LOCK = new Object();
+    
+    private ScheduledExecutorService scheduler;
+    private final List<OutputStrategy> outputStrategies;
+    private final Random random;
+    private boolean isRunning;
+    
+    private BloodPressureDataGenerator bpGenerator;
+    private BloodSaturationDataGenerator satGenerator;
+    private BloodLevelsDataGenerator levelsGenerator;
+    private ECGDataGenerator ecgGenerator;
+    private AlertGenerator alertGenerator;
 
-    private static int patientCount = 50; // Default number
-    private static ScheduledExecutorService scheduler;
-    private static OutputStrategy outputStrategy = new ConsoleOutputStrategy(); // Default strategy
-    private static final Random random = new Random();
-
-    /**
-     * Starts simulation by parsing args and scheduling tasks.
-     * @param args command line args
-     * @throws IOException on file issues
-     */
-    public static void main(String[] args) throws IOException {
-
-        parseArguments(args);
-
-        scheduler = Executors.newScheduledThreadPool(patientCount * 4);
-
-        List<Integer> patientIds = initializePatientIds(patientCount);
-        Collections.shuffle(patientIds); // Randomize the order of patient IDs
-
-        scheduleTasksForPatients(patientIds);
+    //default settings
+    private HealthDataSimulator() {
+        this.outputStrategies = Collections.synchronizedList(new ArrayList<>());
+        this.random = new Random();
+        this.isRunning = false;
     }
 
     /**
-     * Sets options from args (like patient count and output type).
-     * @param args command line args
-     * @throws IOException on file problems
+     * gets the singleton instance of HealthDataSimulator. and 
+     * creates it if it doesn't exist using double-checked locking.
+     * 
+     * @return the singleton instance of HealthDataSimulator
      */
-    static void parseArguments(String[] args) throws IOException {
-        for (int i = 0; i < args.length; i++) {
-            switch (args[i]) {
-                case "-h":
-                    printHelp();
-                    System.exit(0);
-                    break;
-                case "--patient-count":
-                    if (i + 1 < args.length) {
-                        try {
-                            patientCount = Integer.parseInt(args[++i]);
-                        } catch (NumberFormatException e) {
-                            System.err
-                                    .println("Error: Invalid number of patients. Using default value: " + patientCount);
-                        }
-                    }
-                    break;
-                case "--output":
-                    if (i + 1 < args.length) {
-                        String outputArg = args[++i];
-                        if (outputArg.equals("console")) {
-                            outputStrategy = new ConsoleOutputStrategy();
-                        } else if (outputArg.startsWith("file:")) {
-                            String baseDirectory = outputArg.substring(5);
-                            Path outputPath = Paths.get(baseDirectory);
-                            if (!Files.exists(outputPath)) {
-                                Files.createDirectories(outputPath);
-                            }
-                            outputStrategy = new FileOutputStrategy(baseDirectory);
-                        } else if (outputArg.startsWith("websocket:")) {
-                            try {
-                                int port = Integer.parseInt(outputArg.substring(10));
-                                // Initialize your WebSocket output strategy here
-                                outputStrategy = new WebSocketOutputStrategy(port);
-                                System.out.println("WebSocket output will be on port: " + port);
-                            } catch (NumberFormatException e) {
-                                System.err.println(
-                                        "Invalid port for WebSocket output. Please specify a valid port number.");
-                            }
-                        } else if (outputArg.startsWith("tcp:")) {
-                            try {
-                                int port = Integer.parseInt(outputArg.substring(4));
-                                // Initialize your TCP socket output strategy here
-                                outputStrategy = new TcpOutputStrategy(port);
-                                System.out.println("TCP socket output will be on port: " + port);
-                            } catch (NumberFormatException e) {
-                                System.err.println("Invalid port for TCP output. Please specify a valid port number.");
-                            }
-                        } else {
-                            System.err.println("Unknown output type. Using default (console).");
-                        }
-                    }
-                    break;
-                default:
-                    System.err.println("Unknown option '" + args[i] + "'");
-                    printHelp();
-                    System.exit(1);
+    public static HealthDataSimulator getInstance() {
+        if (instance == null) {
+            synchronized (LOCK) {
+                if (instance == null) {
+                    instance = new HealthDataSimulator();
+                }
+            }
+        }
+        return instance;
+    }
+
+    /**
+     * adds an output strategy to the simulator.
+     * 
+     * @param strategy the output strategy to add
+     */
+    public void addOutputStrategy(OutputStrategy strategy) {
+        if (strategy != null) {
+            outputStrategies.add(strategy);
+        }
+    }
+
+    /**
+     * initializes the data generators with the specified number of patients
+     * 
+     * @param patientCount number of patients to simulate data for
+     */
+    public void initializeGenerators(int patientCount) {
+        bpGenerator = new BloodPressureDataGenerator(patientCount);
+        satGenerator = new BloodSaturationDataGenerator(patientCount);
+        levelsGenerator = new BloodLevelsDataGenerator(patientCount);
+        ecgGenerator = new ECGDataGenerator(patientCount);
+        alertGenerator = new AlertGenerator(patientCount);
+    }
+
+    /**
+     * starts the simulation with the specified interval and runs for the specified duration
+     * 
+     * @param intervalMs the interval between data generations in milliseconds
+     * @param durationMs how long to run the simulation in milliseconds (0  for indefinite)
+     */
+    public void startSimulation(long intervalMs, long durationMs) {
+        synchronized (LOCK) {
+            if (!isRunning) {
+                if (scheduler == null || scheduler.isShutdown()) {
+                    scheduler = Executors.newScheduledThreadPool(5);
+                }
+                
+                isRunning = true;
+                scheduler.scheduleAtFixedRate(this::generateAndOutputData, 0, intervalMs, TimeUnit.MILLISECONDS);
+                
+                if (durationMs > 0) {
+                    scheduler.schedule(() -> {
+                        stopSimulation();
+                    }, durationMs, TimeUnit.MILLISECONDS);
+                }
             }
         }
     }
 
     /**
-     * Shows help and usage info.
+     * starts the simulation with the specified interval
+     * 
+     * @param intervalMs the interval between data generations in milliseconds
      */
-    private static void printHelp() {
-        System.out.println("Usage: java HealthDataSimulator [options]");
-        System.out.println("Options:");
-        System.out.println("  -h                       Show help and exit.");
-        System.out.println(
-                "  --patient-count <count>  Specify the number of patients to simulate data for (default: 50).");
-        System.out.println("  --output <type>          Define the output method. Options are:");
-        System.out.println("                             'console' for console output,");
-        System.out.println("                             'file:<directory>' for file output,");
-        System.out.println("                             'websocket:<port>' for WebSocket output,");
-        System.out.println("                             'tcp:<port>' for TCP socket output.");
-        System.out.println("Example:");
-        System.out.println("  java HealthDataSimulator --patient-count 100 --output websocket:8080");
-        System.out.println(
-                "  This command simulates data for 100 patients and sends the output to WebSocket clients connected to port 8080.");
+    public void startSimulation(long intervalMs) {
+        startSimulation(intervalMs, 0); // Run indefinitely
     }
 
     /**
-     * Returns patient IDs from 1 up to patientCount.
-     * @param patientCount total number of patients
-     * @return list of patient IDs
+     * Stops the simulation.
      */
-    private static List<Integer> initializePatientIds(int patientCount) {
-        List<Integer> patientIds = new ArrayList<>();
-        for (int i = 1; i <= patientCount; i++) {
-            patientIds.add(i);
-        }
-        return patientIds;
-    }
-
-    /**
-     * Schedules data generation tasks for each patient.
-     * @param patientIds list of patients
-     */
-    private static void scheduleTasksForPatients(List<Integer> patientIds) {
-        ECGDataGenerator ecgDataGenerator = new ECGDataGenerator(patientCount);
-        BloodSaturationDataGenerator bloodSaturationDataGenerator = new BloodSaturationDataGenerator(patientCount);
-        BloodPressureDataGenerator bloodPressureDataGenerator = new BloodPressureDataGenerator(patientCount);
-        BloodLevelsDataGenerator bloodLevelsDataGenerator = new BloodLevelsDataGenerator(patientCount);
-        AlertGenerator alertGenerator = new AlertGenerator(patientCount);
-
-        for (int patientId : patientIds) {
-            scheduleTask(() -> ecgDataGenerator.generate(patientId, outputStrategy), 1, TimeUnit.SECONDS);
-            scheduleTask(() -> bloodSaturationDataGenerator.generate(patientId, outputStrategy), 1, TimeUnit.SECONDS);
-            scheduleTask(() -> bloodPressureDataGenerator.generate(patientId, outputStrategy), 1, TimeUnit.MINUTES);
-            scheduleTask(() -> bloodLevelsDataGenerator.generate(patientId, outputStrategy), 2, TimeUnit.MINUTES);
-            scheduleTask(() -> alertGenerator.generate(patientId, outputStrategy), 20, TimeUnit.SECONDS);
+    public void stopSimulation() {
+        synchronized (LOCK) {
+            if (isRunning) {
+                isRunning = false;
+                if (scheduler != null && !scheduler.isShutdown()) {
+                    scheduler.shutdown();
+                    try {
+                        if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                            scheduler.shutdownNow();
+                        }
+                    } catch (InterruptedException e) {
+                        scheduler.shutdownNow();
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
         }
     }
 
     /**
-     * Schedules a task with a random start delay.
-     * @param task the task to run repeatedly
-     * @param period period between runs
-     * @param timeUnit time unit for the period
+     * generates and outputs data for all configured patients
      */
-    private static void scheduleTask(Runnable task, long period, TimeUnit timeUnit) {
-        scheduler.scheduleAtFixedRate(task, random.nextInt(5), period, timeUnit);
+    private void generateAndOutputData() {
+        if (!isRunning) {
+            return;
+        }
+
+        for (OutputStrategy strategy : outputStrategies) {
+            for (int patientId = 1; patientId <= 5; patientId++) {
+                if (bpGenerator != null) {
+                    bpGenerator.generate(patientId, strategy);
+                }
+                if (satGenerator != null) {
+                    satGenerator.generate(patientId, strategy);
+                }
+                if (levelsGenerator != null) {
+                    levelsGenerator.generate(patientId, strategy);
+                }
+                if (ecgGenerator != null) {
+                    ecgGenerator.generate(patientId, strategy);
+                }
+                if (alertGenerator != null) {
+                    alertGenerator.generate(patientId, strategy);
+                }
+            }
+        }
     }
 
-    /**
-     * Returns help text as a String.
-     * @return help message text
-     */
-    public static String getHelpText() {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PrintStream ps = new PrintStream(baos);
-        PrintStream old = System.out;
-        System.setOut(ps);
+    public static void main(String[] args) {
+        HealthDataSimulator simulator = HealthDataSimulator.getInstance();
+        
+        String outputType = "console";
+        String outputPath = null;
+        long duration = 0;
+        
+        for (String arg : args) {
+            if (arg.startsWith("--output=")) {
+                outputType = arg.substring("--output=".length());
+            } else if (arg.startsWith("--path=")) {
+                outputPath = arg.substring("--path=".length());
+            } else if (arg.startsWith("--duration=")) {
+                try {
+                    duration = Long.parseLong(arg.substring("--duration=".length()));
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid duration format. Using default.");
+                }
+            }
+        }
 
-        printHelp();
+        OutputStrategy outputStrategy;
+        switch (outputType.toLowerCase()) {
+            case "file":
+                if (outputPath == null) {
+                    System.err.println("File output requires --path argument");
+                    return;
+                }
+                outputStrategy = new FileOutputStrategy(outputPath);
+                break;
+            case "tcp":
+                outputStrategy = new TcpOutputStrategy(8080);
+                break;
+            case "websocket":
+                outputStrategy = new WebSocketOutputStrategy(8081);
+                break;
+            case "console":
+            default:
+                outputStrategy = new ConsoleOutputStrategy();
+                break;
+        }
 
-        System.out.flush();
-        System.setOut(old);
-        return baos.toString();
+        simulator.addOutputStrategy(outputStrategy);
+        simulator.initializeGenerators(10);
+        simulator.startSimulation(1000, duration);
+
+        if (duration == 0) {
+            try {
+                Thread.sleep(Long.MAX_VALUE);
+            } catch (InterruptedException e) {
+                simulator.stopSimulation();
+            }
+        } else {
+            try {
+                Thread.sleep(duration + 100);
+            } catch (InterruptedException e) {
+                simulator.stopSimulation();
+            }
+        }
     }
 }

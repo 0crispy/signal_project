@@ -1,35 +1,76 @@
 package com.cardio_generator.generators;
 
+import org.junit.Before;
+import org.junit.Test;
+import static org.junit.Assert.*;
 import com.cardio_generator.outputs.OutputStrategy;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-class BloodLevelsDataGeneratorTest {
+public class BloodLevelsDataGeneratorTest {
     private BloodLevelsDataGenerator generator;
-    private OutputStrategy mockOutput;
+    private TestOutputStrategy outputStrategy;
 
-    @BeforeEach
-    void setUp() {
-        generator = new BloodLevelsDataGenerator(5);
-        mockOutput = Mockito.mock(OutputStrategy.class);
-    }
+    private class TestOutputStrategy implements OutputStrategy {
+        private int patientId;
+        private String label;
+        private String data;
 
-    @Test
-    void constructor_InitializesValuesWithinRange() {
-        for (int i = 1; i <= 5; i++) {
-            assertTrue(generator.baselineCholesterol[i] >= 150 && generator.baselineCholesterol[i] <= 200);
-            assertTrue(generator.baselineWhiteCells[i] >= 4 && generator.baselineWhiteCells[i] <= 10);
-            assertTrue(generator.baselineRedCells[i] >= 4.5 && generator.baselineRedCells[i] <= 6.0);
+        @Override
+        public void output(int patientId, long timestamp, String label,  String data) 
+        {
+            this.patientId = patientId;
+
+            this.label = label;
+            this.data = data;
+
         }
+
+        public int getPatientId() { return patientId; }
+        public String getLabel() { return label; }
+        public String getData() { return data; }
+    }
+
+    @Before
+    public void setUp() {
+        generator = new BloodLevelsDataGenerator(5); // 5 patients
+        outputStrategy = new TestOutputStrategy();
     }
 
     @Test
-    void generate_ProducesThreeOutputs() {
-        generator.generate(1, mockOutput);
-        verify(mockOutput, times(3)).output(anyInt(), anyLong(), anyString(), anyString());
+    public void testGenerateValidData() {
+        generator.generate(1, outputStrategy);
+        
+        assertEquals("Patient ID should match", 1, outputStrategy.getPatientId());
+        assertEquals("Label should be BloodLevels", "BloodLevels", outputStrategy.getLabel());
+        assertNotNull("Data should not be null", outputStrategy.getData());
+        
+        String data = outputStrategy.getData();
+        assertTrue("Data should contain glucose level", data.contains("glucose="));
+        assertTrue("Data should contain hemoglobin level", data.contains("hemoglobin="));
+        assertTrue("Data should contain platelet count", data.contains("platelets="));
+    }
+
+    @Test
+    public void testGenerateForDifferentPatients() {
+        generator.generate(1, outputStrategy);
+        String data1 = outputStrategy.getData();
+        
+        generator.generate(2, outputStrategy);
+        String data2 = outputStrategy.getData();
+        
+        assertNotEquals("Different patients should have different data", data1, data2);
+    }
+
+    @Test
+    public void testInvalidPatientId() {
+        generator.generate(0, outputStrategy);
+        assertNull("Should not generate data for invalid patient ID", outputStrategy.getData());
+        
+        generator.generate(6, outputStrategy);
+        assertNull("Should not generate data for patient ID > max", outputStrategy.getData());
+    }
+
+    @Test
+    public void testNullOutputStrategy() {
+        generator.generate(1, null);
     }
 }

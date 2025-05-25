@@ -11,11 +11,13 @@ public class ECGDataGenerator implements PatientDataGenerator {
     private static final Random random = new Random();
     double[] lastEcgValues;
     private static final double PI = Math.PI;
+    private final int maxPatients;
 
     /**
      * Sets up initial ECG values for each patient.
      */
     public ECGDataGenerator(int patientCount) {
+        this.maxPatients = patientCount;
         lastEcgValues = new double[patientCount + 1];
         // Initialize the last ECG value for each patient
         for (int i = 1; i <= patientCount; i++) {
@@ -28,14 +30,23 @@ public class ECGDataGenerator implements PatientDataGenerator {
      */
     @Override
     public void generate(int patientId, OutputStrategy outputStrategy) {
-        // TODO Check how realistic this data is and make it more realistic if necessary
         try {
+            if (patientId <= 0 || patientId > maxPatients) {
+                System.err.println("Invalid patient ID: " + patientId + " (valid range: 1-" + maxPatients + ")");
+                return;
+            }
+
+            if (outputStrategy == null) {
+                System.err.println("Output strategy cannot be null");
+                return;
+            }
+
             double ecgValue = simulateEcgWaveform(patientId, lastEcgValues[patientId]);
             outputStrategy.output(patientId, System.currentTimeMillis(), "ECG", Double.toString(ecgValue));
             lastEcgValues[patientId] = ecgValue;
         } catch (Exception e) {
             System.err.println("An error occurred while generating ECG data for patient " + patientId);
-            e.printStackTrace(); // This will print the stack trace to help identify where the error occurred.
+            e.printStackTrace();
         }
     }
 
