@@ -151,50 +151,65 @@ public class DataStorage {
             System.out.println("------------------------------------");
         });
 
-        // Process command line arguments to find data directory
+        // Process command line arguments
         String dataDir = null;
+        String wsUrl = null;
+        DataReader reader = null;
+
         for (String arg : args) {
             if (arg.startsWith("--input=")) {
                 dataDir = arg.substring("--input=".length());
+            } else if (arg.startsWith("--websocket=")) {
+                wsUrl = arg.substring("--websocket=".length());
             }
         }
 
-        if (dataDir != null) {
-            try {
-                // Initialize FileDataReader with the specified directory
-                FileDataReader reader = new FileDataReader(dataDir);
-                reader.readData(storage);
-                System.out.println("Data loaded successfully from: " + dataDir);
-            } catch (IOException e) {
-                System.err.println("Error reading data: " + e.getMessage());
+        try {
+            if (wsUrl != null) {
+                reader = new WebSocketDataReader(wsUrl);
+                System.out.println("Connecting to WebSocket server at: " + wsUrl);
+            } else if (dataDir != null) {
+                reader = new FileDataReader(dataDir);
+                System.out.println("Reading data from directory: " + dataDir);
+            } else {
+                System.out.println("No input source specified. Use --input=<directory> for file input or --websocket=<url> for WebSocket connection.");
                 System.exit(1);
             }
-        } else {
-            System.out.println("No input directory specified. Use --input=<directory> to load data.");
-            // Continue with empty storage for demonstration
-        }
 
-        // Example of using DataStorage to retrieve and print records for a patient
-        List<PatientRecord> records = storage.getRecords(1, 0L, Long.MAX_VALUE);
-        if (!records.isEmpty()) {
-            System.out.println("Found " + records.size() + " records for patient ID 1");
-            for (PatientRecord record : records) {
-                System.out.println("Record: " + record.getRecordType() +
-                        ", Value: " + record.getMeasurementValue() +
-                        ", Timestamp: " + record.getTimestamp());
+            reader.readData(storage);
+
+            // initialize the AlertGenerator with the storag
+            AlertGenerator alertGenerator = new AlertGenerator(storage, alertManager);
+
+            // for WebSocket connections, keep the application running
+            if (wsUrl != null) {
+                System.out.println("WebSocket connection established. Waiting for real-time data...");
+                // Keep the main thread alive
+                while (true) {
+                    Thread.sleep(1000);
+                    // Evaluate  all patients' data periodically
+                    for (Patient  patient : storage.getAllPatients()) {
+                        alertGenerator.evaluateData(patient);
+                    }
+                }
+            } 
+            else {
+                // For file input, evaluate once and exit
+                for (Patient patient : storage.getAllPatients()) {
+                    alertGenerator.evaluateData(patient);
+                }
+                System.out.println("Data processing complete.");
             }
-        } else {
-            System.out.println("No records found for patient ID 1");
-        }
 
-        // Initialize the AlertGenerator with the storage
-        AlertGenerator alertGenerator = new AlertGenerator(storage, alertManager);
-
-        // Evaluate all patients' data to check for conditions that may trigger alerts
-        for (Patient patient : storage.getAllPatients()) {
-            alertGenerator.evaluateData(patient);
+        } 
+        catch (IOException e) {
+            System.err.println("Error processing data: " + e.getMessage());
+            System.exit(1);
+        } 
+        catch (InterruptedException e) {
+            System.err.println("Application interrupted: " + e.getMessage());
+            Thread.currentThread().interrupt();
+            System.exit(1);
         }
-        
-        System.out.println("Alert evaluation complete.");
     }
 }
